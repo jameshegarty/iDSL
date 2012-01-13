@@ -1,6 +1,8 @@
 #include "util.h"
 #include <stdio.h>
 #include "string.h"
+#include <math.h>
+#include <assert.h>
 
 unsigned int endian(unsigned int x){return x;}
 
@@ -157,10 +159,10 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   fseek(file, 16, SEEK_CUR);
   currentCurPos += 16;
 
-  float x=(totalfilesize-headersize-size);
-  float offsetF=x/(*height);
-  int offset=offsetF;
-  
+  // bmps pad each row to be a multiple of 4 bytes
+  int padding = 4 - ((*width) * (*channels) % 4);
+  padding = padding == 4 ? 0 : padding;
+
   // allocate array for data
   *data=new unsigned char[size];
 
@@ -169,22 +171,23 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
     return false;	
   }
 
-  if(offset!=0){
-    //bitmaps, if not a power of two, termenate each row with a few bytes with value 0
-    //why? d'no.  we can derive this from the filesize given in the file
+  if(padding!=0){
     
-    unsigned char *tempData=new unsigned char[size+offset*(*height)];
+    unsigned char *tempData=new unsigned char[size+padding*(*height)];
     
     fseek(file, headersize-currentCurPos, SEEK_CUR);
     
-    if ((i = fread(tempData, size+offset*(*height), 1, file)) != 1) {
+    if ((i = fread(tempData, size+padding*(*height), 1, file)) != 1) {
       printf("Error reading image data");
       delete[] tempData;
       return false;
     }
     
     for(int h=0; h<(*height); h++){  
-      memcpy(data[h*(*width)*(*channels)],&tempData[h*(*width)*(*channels)+h*offset],(*width)*(*channels));
+      memcpy(
+	&((*data)[h*(*width)*(*channels)]),
+	&tempData[h*(*width)*(*channels)+h*padding],
+	(*width)*(*channels));
     }
 
     delete[] tempData;
@@ -227,197 +230,215 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
 }
 
 bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
-    FILE *file;
+  FILE *file;
     
-    // make sure the file is there.
-    if ((file = fopen(filename, "wb"))==NULL){
-      printf("could't open file for writing");
-      return false;
-    }
+  // make sure the file is there.
+  if ((file = fopen(filename, "wb"))==NULL){
+    printf("could't open file for writing");
+    return false;
+  }
     
-    unsigned char BMPheader[2]={66,77};
+  unsigned char BMPheader[2]={66,77};
 
-    if ((fwrite(&BMPheader, sizeof(BMPheader), 1, file)) != 1) {
-      printf("[Bmp::save] Error writing header");
-      return false;
-    }
+  if ((fwrite(&BMPheader, sizeof(BMPheader), 1, file)) != 1) {
+    printf("[Bmp::save] Error writing header");
+    return false;
+  }
     
-    unsigned int totalsize=width * height * channels +54;
+  unsigned int totalsize=width * height * channels +54;
     
-    if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
-      printf("[Bmp::save] Error writing header");
-      return false;
-    }
+  if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
+    printf("[Bmp::save] Error writing header");
+    return false;
+  }
 
-    totalsize=0;
+  totalsize=0;
     
-    if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
-      printf("[Bmp::save] Error writing header");
+  if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
+    printf("[Bmp::save] Error writing header");
       
-      return false;
+    return false;
       
-    }
+  }
     
-    //offset to data=54
-    totalsize=54;
+  //offset to data=54
+  totalsize=54;
     
-    if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
-      printf("[Bmp::save] Error writing header");
+  if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
+    printf("[Bmp::save] Error writing header");
       
-      return false;
+    return false;
       
-    }
+  }
     
-    //	Size of InfoHeader =40 
-    totalsize=40;
+  //	Size of InfoHeader =40 
+  totalsize=40;
     
-    if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
-      printf("[Bmp::save] Error writeing header");
+  if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
+    printf("[Bmp::save] Error writeing header");
       
-      return false;
+    return false;
       
-    }
+  }
     
-    unsigned int owidth=width;
-    unsigned int oheight=height;
+  unsigned int owidth=width;
+  unsigned int oheight=height;
     
-    // write the width
-    if ((fwrite(&owidth, 4, 1, file)) != 1) {
-      printf("Error writeing width");
+  // write the width
+  if ((fwrite(&owidth, 4, 1, file)) != 1) {
+    printf("Error writeing width");
       
-      return false;
+    return false;
       
-    }
+  }
     
-    // write the height 
-    if ((fwrite(&oheight, 4, 1, file)) != 1) {
-      printf("Error writing height");
+  // write the height 
+  if ((fwrite(&oheight, 4, 1, file)) != 1) {
+    printf("Error writing height");
       
-      return false;
-    }
+    return false;
+  }
     
-    // calculate the size (assuming 24 bits or 3 bytes per pixel).
-    unsigned long size = height * width * channels;
+  // calculate the size (assuming 24 bits or 3 bytes per pixel).
+  unsigned long size = height * width * channels;
     
-    // write the planes
-    unsigned short int planes=1;
+  // write the planes
+  unsigned short int planes=1;
     
-    if ((fwrite(&planes, 2, 1, file)) != 1) {
-      printf("Error writeing planes");
+  if ((fwrite(&planes, 2, 1, file)) != 1) {
+    printf("Error writeing planes");
       
-      return false;
-    }
+    return false;
+  }
     
-    // write the bpp
-    unsigned short bitsPP = 24;
+  // write the bpp
+  unsigned short bitsPP = 24;
     
-    if ((fwrite(&bitsPP, 2, 1, file)) != 1) {
-      printf("[Bmp save] Error writeing bpp");
-      return false;
-    }
+  if ((fwrite(&bitsPP, 2, 1, file)) != 1) {
+    printf("[Bmp save] Error writeing bpp");
+    return false;
+  }
     
-    //compression
-    unsigned int comp=0;
+  //compression
+  unsigned int comp=0;
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    //imagesize
-    comp=0;
+  //imagesize
+  comp=0;
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    //XpixelsPerM
-    comp=0;
+  //XpixelsPerM
+  comp=0;
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    //YpixelsPerM
-    comp=0;
+  //YpixelsPerM
+  comp=0;
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    //ColorsUsed
-    comp=0;
+  //ColorsUsed
+  comp=0;
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    //ColorsImportant
-    comp=0;
+  //ColorsImportant
+  comp=0;
+     
+  if ((fwrite(&comp, 4, 1, file)) != 1) {
+    printf("Error writeing planes to ");
+    return false;
+  }
     
-    if ((fwrite(&comp, 4, 1, file)) != 1) {
-      printf("Error writeing planes to ");
-      return false;
-    }
+  // read the data. 
     
-    // read the data. 
+  if (data == NULL) {
+    printf("[Bmp save] No image data to write!");
+    return false;	
+  }
     
-    if (data == NULL) {
-      printf("[Bmp save] No image data to write!");
-      return false;	
-    }
-    
-    unsigned char temp;
+  unsigned char temp;
 
-    if(channels==3){
-      for (unsigned int i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
-	temp = data[i];
-	data[i] = data[i+2];
-	data[i+2] = temp;
+  // bmps pad each row to be a multiple of 4 bytes
+  int padding = 4 - (width * channels % 4);
+  padding = padding == 4 ? 0 : padding;
+  char pad[]={0,0,0};
+
+  if(channels==3){
+    for (unsigned int i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
+      temp = data[i];
+      data[i] = data[i+2];
+      data[i+2] = temp;
+    }
+    
+    if(padding != 0){
+      for(int h=0; h<height; h++){
+	fwrite(&data[h*width*channels], width*channels, 1, file);
+	fwrite(pad,padding,1,file);
       }
-      
+    }else{
       if ((fwrite(data, size, 1, file)) != 1) {
-	printf("[Bmp save] Error writeing image data to ");
+	printf("[Bmp save] Error writeing image data");
 	return false;
       }
+    }
+
+    for (unsigned int i=0;i<size;i+=3) { // new we switch them back to RGB.  shoud figure out some way to not have to do this
+      temp = data[i];
+      data[i] = data[i+2];
+      data[i+2] = temp;
+    }
       
-      for (unsigned int i=0;i<size;i+=3) { // new we switch them back to RGB.  shoud figure out some way to not have to do this
-	temp = data[i];
-	data[i] = data[i+2];
-	data[i+2] = temp;
+  }else if(channels==1){
+    //we need to expand an alpha into 3 components so taht it can actually be read
+    unsigned char* expanded=new unsigned char[width*height*3];
+      
+    printf("[Bmp::save] 1 bytesPP");
+      
+    int m;
+      
+    for(m=0; m<(width*height); m++){
+      expanded[(m*3)]=data[m];
+      expanded[(m*3)+1]=data[m];
+      expanded[(m*3)+2]=data[m];
+    }
+       
+    if(padding != 0){
+      for(int h=0; h<height; h++){
+	fwrite(&expanded[h*width*3], width*3, 1, file);
+	fwrite(pad,padding,1,file);
       }
-      
-    }else if(channels==1){
-      //we need to expand an alpha into 3 components so taht it can actually be read
-      unsigned char* expanded=new unsigned char[width*height*3];
-      
-      printf("[Bmp::save] 1 bytesPP");
-      
-      int m;
-      
-      for(m=0; m<(width*height); m++){
-	expanded[(m*3)]=data[m];
-	expanded[(m*3)+1]=data[m];
-	expanded[(m*3)+2]=data[m];
-      }
-      
-      
+    }else{
       if ((fwrite(expanded,width*height*3, 1, file)) != 1) {
 	printf("[Bmp save] Error writeing image data to ");
 	delete[] expanded;
 	return false;
       }
-      
-      delete[] expanded;
     }
+
+    delete[] expanded;
+  }
     
     
-    fclose(file);
+  fclose(file);
     
-    // we're done.
-    return true;
+  // we're done.
+  return true;
 }
