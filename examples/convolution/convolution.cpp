@@ -25,7 +25,7 @@ void buildGaussianKernel2D(float sigma, int kernelRadius, float *kernel){
   for(int i=0; i<kWidth*kWidth; i++){kernel[i] *= sum;}
 
   // debug
-  for(int i=0; i<kWidth*kWidth; i++){printf("%f\n",kernel[i]);}
+  //for(int i=0; i<kWidth*kWidth; i++){printf("%f\n",kernel[i]);}
 }
 
 // out of bounds values are clamped to the edge value
@@ -80,8 +80,8 @@ void convolve2D(
   assert(aHeight % 2 == 1);
   assert(bWidth % 2 == 1);
   assert(bHeight % 2 == 1);
-  assert(outWidth == std::max(aWidth+(bWidth-1)/2,(aWidth-1)/2+bWidth));
-  assert(outHeight == std::max(aHeight+(bHeight-1)/2,(aHeight-1)/2+bHeight));
+  assert(outWidth == std::max(aWidth+(bWidth-1),(aWidth-1)+bWidth));
+  assert(outHeight == std::max(aHeight+(bHeight-1),(aHeight-1)+bHeight));
 
   int bOffsetX = (bWidth - aWidth)/2;
   bOffsetX = bOffsetX > 0 ? 0 : bOffsetX;

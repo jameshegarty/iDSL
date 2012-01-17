@@ -6,6 +6,14 @@
 
 unsigned int endian(unsigned int x){return x;}
 
+void normalizeKernel(int width, int height, float *kernel){
+  // normalize
+  float sum = 0.f;
+  for(int i=0; i<width*height; i++){sum += kernel[i];}
+  sum = 1.f / sum;
+  for(int i=0; i<width*height; i++){kernel[i] *= sum;}
+}
+
 unsigned char sampleBilinear(int width, int height, float x, float y, unsigned char* in){
   if(x < 0.f){return 0;}
   if(y < 0.f){return 0;}
@@ -48,7 +56,7 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   
   FILE *file = fopen(filename,"rb");
   fseek(file, 0L, SEEK_END);
-  unsigned long totalfilesize = ftell(file);
+  //unsigned long totalfilesize = ftell(file);
 
   fseek(file, 2, SEEK_SET);
   currentCurPos += 2;
@@ -202,26 +210,15 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   
   unsigned char temp = 0;
 
-  if(*channels==3){
-    for (i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
-      temp = (*data)[i];
-      (*data)[i] = (*data)[i+2];
-      (*data)[i+2] = temp;
-      
-      (*data)[i]=(*data)[i];
-      (*data)[i+1]=(*data)[i+1];
-      (*data)[i+2]=(*data)[i+2];
-    }
-  }else if(*channels==4){
-    for (i=0;i<size;i+=4) { // reverse all of the colors. (bgr -> rgb)
-      temp = (*data)[i];
-      (*data)[i] = (*data)[i+2];
-      (*data)[i+2] = temp;
-      
-      (*data)[i]=(*data)[i];
-      (*data)[i+1]=(*data)[i+1];
-      (*data)[i+2]=(*data)[i+2];
-    }
+
+  for (unsigned int j=0; j<size; j+=*channels ) { // reverse all of the colors. (bgr -> rgb)
+    temp = (*data)[j];
+    (*data)[j] = (*data)[j+2];
+    (*data)[j+2] = temp;
+    
+    (*data)[j]=(*data)[j];
+    (*data)[j+1]=(*data)[j+1];
+    (*data)[j+2]=(*data)[j+2];
   }
   
   fclose(file);
@@ -235,7 +232,7 @@ bool saveImage(const char *filename, int width, int height, int channels, float 
   unsigned char *temp = new unsigned char[width*height*channels];
 
   for(int i=0; i<width*height*channels; i++){
-    temp[i] = data[i]*255.f;
+    temp[i] = (unsigned char)(data[i]*255.f);
   }
 
   bool res = saveImage(filename,width,height,channels,temp);
@@ -260,7 +257,7 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
     return false;
   }
     
-  unsigned int totalsize=width * height * channels +54;
+  unsigned int totalsize=width * height * 3 +54; // we always write 3 channels
     
   if ((fwrite(&totalsize, sizeof(totalsize), 1, file)) != 1) {
     printf("[Bmp::save] Error writing header");
@@ -314,8 +311,6 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
     return false;
   }
     
-  // calculate the size (assuming 24 bits or 3 bytes per pixel).
-  unsigned long size = height * width * channels;
     
   // write the planes
   unsigned short int planes=1;
@@ -392,11 +387,14 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
   unsigned char temp;
 
   // bmps pad each row to be a multiple of 4 bytes
-  int padding = 4 - (width * channels % 4);
+  int padding = 4 - (width * 3 % 4); // we always write 3 channels
   padding = padding == 4 ? 0 : padding;
   char pad[]={0,0,0};
 
   if(channels==3){
+    // calculate the size (assuming 24 bits or 3 bytes per pixel).
+    unsigned long size = height * width * channels;
+
     for (unsigned int i=0;i<size;i+=3) { // reverse all of the colors. (bgr -> rgb)
       temp = data[i];
       data[i] = data[i+2];
@@ -427,9 +425,7 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
       
     printf("[Bmp::save] 1 bytesPP");
       
-    int m;
-      
-    for(m=0; m<(width*height); m++){
+    for(int m=0; m<(width*height); m++){
       expanded[(m*3)]=data[m];
       expanded[(m*3)+1]=data[m];
       expanded[(m*3)+2]=data[m];
@@ -442,13 +438,15 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
       }
     }else{
       if ((fwrite(expanded,width*height*3, 1, file)) != 1) {
-	printf("[Bmp save] Error writeing image data to ");
+	printf("[Bmp save] Error writing image data");
 	delete[] expanded;
 	return false;
       }
     }
 
     delete[] expanded;
+  }else{
+    assert(false);
   }
     
     
