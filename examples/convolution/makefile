@@ -1,8 +1,4 @@
-CFLAGS =  -Wall
+SRC := blur.cpp convolution.cpp ../util.cpp
+EXECUTABLE := blur
 
-convolution: convolution.o
-	g++ -o convolution convolution.o ../util.o
-
-convolution.o: convolution.cpp
-	g++ -c -o convolution.o convolution.cpp $(CFLAGS)
-
+include ../main.mk

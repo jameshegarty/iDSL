@@ -229,6 +229,21 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   return true;
 }
 
+bool saveImage(const char *filename, int width, int height, int channels, float *data){
+  // convert float to unsigned char
+
+  unsigned char *temp = new unsigned char[width*height*channels];
+
+  for(int i=0; i<width*height*channels; i++){
+    temp[i] = data[i]*255.f;
+  }
+
+  bool res = saveImage(filename,width,height,channels,temp);
+  delete[] temp;
+
+  return res;
+}
+
 bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
   FILE *file;
     
