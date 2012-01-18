@@ -29,14 +29,15 @@ void buildGaussianKernel2D(float sigma, int kernelRadius, float *kernel){
 }
 
 // out of bounds values are clamped to the edge value
-void convolve2DClamped(
+template <class T>
+void convolve2DClampedInternal(
   int inWidth, 
   int inHeight, 
-  unsigned char* in, 
+  T* in, 
   int kernelWidth,
   int kernelHeight,
   float *kernel,
-  unsigned char* out){
+  T* out){
 
   assert(kernelWidth % 2 == 1);
   assert(kernelHeight % 2 == 1);
@@ -62,6 +63,43 @@ void convolve2DClamped(
   }
 }
 
+void convolve2DClamped(
+  int inWidth, 
+  int inHeight, 
+  unsigned char* in, 
+  int kernelWidth,
+  int kernelHeight,
+  float *kernel,
+  unsigned char* out){
+
+  convolve2DClampedInternal(
+    inWidth, 
+    inHeight, 
+    in, 
+    kernelWidth,
+    kernelHeight,
+    kernel,
+    out);
+}
+
+void convolve2DClamped(
+  int inWidth, 
+  int inHeight, 
+  float* in, 
+  int kernelWidth,
+  int kernelHeight,
+  float *kernel,
+  float* out){
+
+  convolve2DClampedInternal(
+    inWidth, 
+    inHeight, 
+    in, 
+    kernelWidth,
+    kernelHeight,
+    kernel,
+    out);
+}
 
 // calculates out = a * b = b * a
 // out of bounds values are 0

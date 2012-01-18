@@ -12,6 +12,15 @@ void convolve2DClamped(
   float *kernel,
   unsigned char* out);
 
+void convolve2DClamped(
+  int inWidth, 
+  int inHeight, 
+  float* in, 
+  int kernelWidth,
+  int kernelHeight,
+  float *kernel,
+  float* out);
+
 void convolve2D(
   int aWidth, 
   int aHeight, 

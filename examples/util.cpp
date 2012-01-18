@@ -14,6 +14,16 @@ void normalizeKernel(int width, int height, float *kernel){
   for(int i=0; i<width*height; i++){kernel[i] *= sum;}
 }
 
+float sum(int width, int height, float *kernel){
+  float s = 0.f;
+
+  for(int i=0; i<width*height; i++){
+    s += kernel[i];
+  }
+
+  return s;
+}
+
 unsigned char sampleBilinear(int width, int height, float x, float y, unsigned char* in){
   if(x < 0.f){return 0;}
   if(y < 0.f){return 0;}
@@ -232,7 +242,8 @@ bool saveImage(const char *filename, int width, int height, int channels, float 
   unsigned char *temp = new unsigned char[width*height*channels];
 
   for(int i=0; i<width*height*channels; i++){
-    temp[i] = (unsigned char)(data[i]*255.f);
+    //    temp[i] = (unsigned char)(data[i]*255.f);
+    temp[i] = (unsigned char)( ((data[i]+1.f)/2.f) * 255.f );
   }
 
   bool res = saveImage(filename,width,height,channels,temp);
