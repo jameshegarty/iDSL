@@ -118,12 +118,12 @@ void convolve2D(
   assert(aHeight % 2 == 1);
   assert(bWidth % 2 == 1);
   assert(bHeight % 2 == 1);
-  assert(outWidth == std::max(aWidth+(bWidth-1),(aWidth-1)+bWidth));
-  assert(outHeight == std::max(aHeight+(bHeight-1),(aHeight-1)+bHeight));
+  assert(outWidth == aWidth+(bWidth-1));
+  assert(outHeight == aHeight+(bHeight-1));
 
-  int bOffsetX = (bWidth - aWidth)/2;
+  int bOffsetX = (bWidth - outWidth)/2;
   bOffsetX = bOffsetX > 0 ? 0 : bOffsetX;
-  int bOffsetY = (bWidth - aWidth)/2;
+  int bOffsetY = (bHeight - outHeight)/2;
   bOffsetY = bOffsetY > 0 ? 0 : bOffsetY;
 
   for(int x=0; x<outWidth; x++){

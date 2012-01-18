@@ -92,20 +92,19 @@ int main(int argc, char **argv){
   saveImage("kernel.bmp", cannyKernelSize, cannyKernelSize, 1, cannyKernelX);
 
   convolve2D(
-    5, 
-    5, 
-    gaussianKernel, 
     3, 
     3, 
     sobelY,
+    5, 
+    5, 
+    gaussianKernel, 
     cannyKernelSize, 
     cannyKernelSize, 
     cannyKernelY);
 
-  printf("%f\n",sum(5,5,gaussianKernel));
-  printf("%f\n",sum(3,3,sobelX));
-  printf("%f\n",sum(cannyKernelSize,cannyKernelSize,cannyKernelX));
-
+  //printf("%f\n",sum(5,5,gaussianKernel));
+  //printf("%f\n",sum(3,3,sobelX));
+  //printf("%f\n",sum(cannyKernelSize,cannyKernelSize,cannyKernelX));
 
   // load image
   int width, height, channels;
