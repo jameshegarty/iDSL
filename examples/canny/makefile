@@ -1,4 +1,4 @@
-SRC := canny.cpp ../util.cpp ../convolution/convolution.cpp
+SRC := canny.cpp cannyTest.cpp ../util.cpp ../convolution/convolution.cpp
 EXECUTABLE := canny
 
 include ../main.mk
