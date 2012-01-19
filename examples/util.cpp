@@ -434,8 +434,6 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
     //we need to expand an alpha into 3 components so taht it can actually be read
     unsigned char* expanded=new unsigned char[width*height*3];
       
-    printf("[Bmp::save] 1 bytesPP");
-      
     for(int m=0; m<(width*height); m++){
       expanded[(m*3)]=data[m];
       expanded[(m*3)+1]=data[m];

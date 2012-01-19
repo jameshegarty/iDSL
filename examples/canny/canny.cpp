@@ -19,46 +19,47 @@ void nonMaximumSuppression(
       float gradientMag = sqrt(gX*gX+gY*gY);
       float ang = atan2(gY,gX) * (180/PI); // [-90,90]
 
-      if(ang > -22.5f && ang < 22.5f){
-	float gXE = gradientX[j*width+i+1];
-	float gYE = gradientY[j*width+i+1];
-	float gMagE = sqrt(gXE*gXE+gYE*gYE);
+      int xOff = 0;
+      int yOff = 0;
 
-	float gXW = gradientX[j*width+i+1];
-	float gYW = gradientY[j*width+i+1];
-	float gMagW = sqrt(gXW*gXW+gYW*gYW);
+      if( (ang > -22.5f && ang < 22.5f) || (ang > 157.5f || ang < -157.5f) ){ // E/W
+	xOff = 1;
+	yOff = 0;
+      }else if( (ang < 112.5f && ang > 67.5f) || (ang < -67.5f && ang > -112.5f)){
+	xOff = 0;
+	yOff = 1;
+      }else if( (ang > 22.5f && ang < 67.5f) || (ang > -157.5f && ang < -112.5f)){
+	xOff = 1;
+	yOff = 1;
+      }else if( (ang > 112.5f && ang < 157.5f) || (ang > -67.5f && ang < -22.5f)){
+	xOff = 1;
+	yOff = -1;
+      }
 
-	if(gradientMag > gMagE && gradientMag > gMagW){
-	  out[j*width+i] = 255;
-	}else{
-	  out[j*width+i] = 0;
-	}
-      }else if(ang < -67.5f && ang > 67.5f){
-	float gXN = gradientX[(j-1)*width+i];
-	float gYN = gradientY[(j-1)*width+i];
-	float gMagN = sqrt(gXN*gXN+gYN*gYN);
-
-	float gXS = gradientX[j*width+i+1];
-	float gYS = gradientY[j*width+i+1];
-	float gMagS = sqrt(gXS*gXS+gYS*gYS);
-
-	if(gradientMag > gMagN && gradientMag > gMagS){
-	  out[j*width+i] = 255;
-	}else{
-	  out[j*width+i] = 0;
-	}
+      float gXA = gradientX[(j+yOff)*width+i+xOff];
+      float gYA = gradientY[(j+yOff)*width+i+xOff];
+      float gMagA = sqrt(gXA*gXA+gYA*gYA);
+      
+      float gXB = gradientX[(j-yOff)*width+i-xOff];
+      float gYB = gradientY[(j-yOff)*width+i-xOff];
+      float gMagB = sqrt(gXB*gXB+gYB*gYB);
+      
+      if(gradientMag >= gMagA && gradientMag > gMagB && gradientMag > 0.05f){
+	out[j*width+i] = 255;
+      }else{
+	out[j*width+i] = 0;
       }
 
     }
   }
 }
 
-int main(int argc, char **argv){
-
-  if(argc!=2){
-    printf("Usage: blur image.type");
-    return 1;
-  }
+void cannyEdgeDetection( 
+  int width, 
+  int height, 
+  int channels, 
+  unsigned char *data,
+  unsigned char *out){
 
   // build kernel
   float *gaussianKernel = new float[5*5];
@@ -102,28 +103,27 @@ int main(int argc, char **argv){
     cannyKernelSize, 
     cannyKernelY);
 
+  //  cannyKernelSize = 3;
+  //  cannyKernelX = sobelX;
+  //  cannyKernelY = sobelY;
+
   //printf("%f\n",sum(5,5,gaussianKernel));
   //printf("%f\n",sum(3,3,sobelX));
   //printf("%f\n",sum(cannyKernelSize,cannyKernelSize,cannyKernelX));
 
-  // load image
-  int width, height, channels;
-  unsigned char *data;
-
-  bool res = loadImage(argv[1], &width, &height, &channels, &data);
 
   assert(channels == 3);
 
   float *dataMagnitude = new float[width*height];
   float *gradientX = new float[width*height];
   float *gradientY = new float[width*height];
-  unsigned char *out = new unsigned char[width*height];
+
 
   for(int i=0; i<width*height; i++){
     float r = data[i*3];
     float g = data[i*3+1];
     float b = data[i*3+2];
-    dataMagnitude[i] = sqrt(r*r+g*g+b*b);
+    dataMagnitude[i] = sqrt(r*r+g*g+b*b) / sqrt(3*255*255);
   }
 
   convolve2DClamped(
@@ -149,12 +149,31 @@ int main(int argc, char **argv){
 
   nonMaximumSuppression(width,height,gradientX,gradientY,out);
 
-  res = saveImage("out.bmp", width, height, 1, out);
-  res = saveImage("in.bmp", width, height, channels, data);
-
   delete[] dataMagnitude;
   delete[] gradientX;
   delete[] gradientY;
+}
+
+int main(int argc, char **argv){
+
+  if(argc!=2){
+    printf("Usage: blur image.type");
+    return 1;
+  }
+
+  // load image
+  int width, height, channels;
+  unsigned char *data;
+
+  bool res = loadImage(argv[1], &width, &height, &channels, &data);
+  unsigned char *out = new unsigned char[width*height];
+
+  cannyEdgeDetection( width, height, channels, data, out );
+
+  res = saveImage("out.bmp", width, height, 1, out);
+  res = saveImage("in.bmp", width, height, channels, data);
+
+  delete[] data;
   delete[] out;
 
   return 0;
