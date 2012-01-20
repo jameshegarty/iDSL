@@ -9,8 +9,8 @@ bool saveImage(const char *file, int width, int height, int channels, unsigned c
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
 
-unsigned char sampleBilinear(int width, int height, float x, float y, unsigned char* in);
-unsigned char sampleNearest(int width, int height, float x, float y, unsigned char* in);
+unsigned char sampleBilinear(int width, int height, float x, float y, const unsigned char* in);
+unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in);
 
 void normalizeKernel(int width, int height, float *kernel);
 float sum(int width, int height, float *kernel);

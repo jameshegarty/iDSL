@@ -62,7 +62,7 @@ float sum(int width, int height, float *kernel){
   return s;
 }
 
-unsigned char sampleBilinear(int width, int height, float x, float y, unsigned char* in){
+unsigned char sampleBilinear(int width, int height, float x, float y, const unsigned char* in){
   if(x < 0.f){return 0;}
   if(y < 0.f){return 0;}
   if(x > float(width)){return 0;}
@@ -86,7 +86,7 @@ unsigned char sampleBilinear(int width, int height, float x, float y, unsigned c
   return (unsigned char)(resa*ryi+resb*ry);
 }
 
-unsigned char sampleNearest(int width, int height, float x, float y, unsigned char* in){
+unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in){
   if(x < 0.f){return 0;}
   if(y < 0.f){return 0;}
   if(x > float(width)){return 0;}
@@ -199,13 +199,20 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   }
   currentCurPos += sizeof(csize);
   csize=endian(csize);
+
     
   if (bpp == 24) {
     *channels = 3;
-  }else if (bpp ==32) {
+
+  } else if (bpp ==32) {
     *channels = 4;
-  }else{
-    printf("Bpp from %s is not 24 or 32: %u\n", filename, bpp);
+
+    // greyscale images:
+  } else if (bpp == 8) {
+    *channels = 1;
+
+  } else {
+    printf("Bpp from %s is not 8, 24, or 32: %u\n", filename, bpp);
     return false;
   }
   
@@ -258,15 +265,16 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   
   unsigned char temp = 0;
 
-
-  for (unsigned int j=0; j<size; j+=*channels ) { // reverse all of the colors. (bgr -> rgb)
-    temp = (*data)[j];
-    (*data)[j] = (*data)[j+2];
-    (*data)[j+2] = temp;
+  if (*channels > 2) {
+    for (unsigned int j=0; j<size; j+=*channels ) { // reverse all of the colors. (bgr -> rgb)
+      temp = (*data)[j];
+      (*data)[j] = (*data)[j+2];
+      (*data)[j+2] = temp;
     
-    (*data)[j]=(*data)[j];
-    (*data)[j+1]=(*data)[j+1];
-    (*data)[j+2]=(*data)[j+2];
+      (*data)[j]=(*data)[j];
+      (*data)[j+1]=(*data)[j+1];
+      (*data)[j+2]=(*data)[j+2];
+    }
   }
   
   fclose(file);
