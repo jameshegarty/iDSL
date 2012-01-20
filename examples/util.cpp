@@ -6,6 +6,44 @@
 
 unsigned int endian(unsigned int x){return x;}
 
+void drawLine( 
+  int width, 
+  int height, 
+  unsigned char *data, 
+  int x0, 
+  int y0, 
+  int x1, 
+  int y1){
+
+  float dx = abs(x1-x0);
+  float dy = abs(y1-y0);
+
+  float sx = -1;
+  float sy = -1;
+  if(x0 < x1){sx = 1;}
+  if(y0 < y1){sy = 1;}
+  float err = dx-dy;
+
+  while(1){
+    data[(y0*width+x0)*3] = 255;
+    data[(y0*width+x0)*3+1] = 0;
+    data[(y0*width+x0)*3+2] = 0;
+
+    if(x0 == x1 && y0 == y1){break;}
+    float e2 = 2*err;
+
+    if(e2 > -dy){
+      err = err - dy;
+      x0 = x0 + sx;
+    }
+
+    if(e2 <  dx){
+      err = err + dx;
+      y0 = y0 + sy;
+    }
+  }
+}
+
 void normalizeKernel(int width, int height, float *kernel){
   // normalize
   float sum = 0.f;

@@ -15,6 +15,8 @@ unsigned char sampleNearest(int width, int height, float x, float y, unsigned ch
 void normalizeKernel(int width, int height, float *kernel);
 float sum(int width, int height, float *kernel);
 
+void drawLine( int width, int height, unsigned char *data, int x0, int y0, int x1, int y1);
+
 template<typename T>
 T clamp(T Value, T Min, T Max){
   return (Value < Min)? Min : (Value > Max)? Max : Value;

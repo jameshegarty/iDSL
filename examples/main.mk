@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -Wall
+CXXFLAGS := -Wall -Werror
 LFLAGS := -L. -fpic -g
 
 OBJECTS := $(patsubst %.cpp,%.o,$(SRC))
