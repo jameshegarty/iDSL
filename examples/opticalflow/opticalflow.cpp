@@ -30,9 +30,13 @@ static void optflow_dummyimpl(const unsigned char *data1, const unsigned char *d
 
 
 
+/**
+ * Estimates partial derivatives for a single point in a pair 
+ * of adjacent images.
+ */
 static void estimatePartial(const unsigned char *img_t1, 
 			    const unsigned char *img_t2,
-			    struct PartialDerivs *partials,
+			    PartialDerivs *partials,
 			    int width, int height,
 			    int i, int j, int chan) {
 
@@ -66,6 +70,30 @@ static void estimatePartial(const unsigned char *img_t1,
 			 + E_i1_j1_k1 - E_i1_j1_k);
   
 }
+
+
+/**
+ * Returns a newly-allocated array of partial deriv structs
+ */
+static PartialDerivs *estimateAllPartials(const unsigned char *img_t1,
+					  const unsigned char *img_t2,
+					  int width, int height, int channels) {
+
+
+  // TODO: for now, one per pixel. May expand to one per color channel.
+  PartialDerivs *partials = new PartialDerivs[width * height];
+
+  for (int h = 0; h < height; h++) {
+    for (int w = 0; w < width; w++) {
+      PartialDerivs *p = &partials[h * width + w];
+      
+      estimatePartial(img_t1, img_t2, p, width, height, w, h, 0);
+    }
+  }
+  
+  return NULL;
+}
+				
 			     
 
 
@@ -104,9 +132,13 @@ int main (int argc, const char * argv[])
     // save the image
     saveImage(argv[3], width1, height1, channels1, dataout);
 
-    PartialDerivs p;
-    estimatePartial(data1, data2, &p, width1, height1, 3, 4, channels1);
+    PartialDerivs *partials = estimateAllPartials(data1, 
+						  data2, 
+						  width1, 
+						  height1, 
+						  channels1);
 
+    delete [] partials;
 
     delete [] data1;
     delete [] data2;
