@@ -1,6 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H 1
 
+enum Color {RED, GREEN, BLUE, ALPHA, LUM};
+
 const float PI = 3.1415926f;
 
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
@@ -21,5 +23,14 @@ template<typename T>
 T clamp(T Value, T Min, T Max){
   return (Value < Min)? Min : (Value > Max)? Max : Value;
 }
+
+
+unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
+                       int x, int y, Color colorChannel,
+                       const unsigned char *data);
+
+void writePixel(int imgWidth, int imgHeight, int nChannels, 
+                        int x, int y, Color colorChannel,
+                        unsigned char *data, unsigned char color);
 
 #endif

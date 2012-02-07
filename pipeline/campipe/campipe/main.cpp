@@ -17,7 +17,7 @@ void *colordarkenstage (void *args) {
     Image *img = (Image *)args;
 
     int w = img->width;
-    int h = img->height * 3; // ARGH ARGH ARGH
+    int h = img->height;
     
     // bmps pad each row to be a multiple of 4 bytes
     int padding = 4 - (w * 3 % 4); // we always write 3 channels
@@ -27,36 +27,21 @@ void *colordarkenstage (void *args) {
     //printf("width: %d   height: %d\n", w, h);
     
     for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j+=3) {
+        for (int j = 0; j < w; j++) {
             
-            if (i == h - 1 && j == w - 1) break;
+            unsigned char red = readPixel(w, h, img->channels, j, i, RED, img->data);
+            unsigned char green = readPixel(w, h, img->channels, j, i, GREEN, img->data);
+            unsigned char blue = readPixel(w, h, img->channels, j, i, BLUE, img->data);
             
-            // grab existing colors
-            unsigned char r = sampleNearest(w, h, j, i, img->data);
-            unsigned char g = sampleNearest(w, h, j+1, i, img->data);
-            unsigned char b = sampleNearest(w, h, j+2, i, img->data);
-
-            int wcolor = 255 * (float)j / (float)(w);
-            int hcolor = 255 * (float)i / (float)(img->height);
             
-            int redIndex = i*w + j+0;
-            int greenIndex = i*w + j+1;
-            int blueIndex = i*w + j+2;
-            if (i%3 == 1) {
-                redIndex = i*w + j+2;
-                greenIndex = i*w + j+0;
-                blueIndex = i*w + j+1;
-
-            } else if (i%3 == 2) {
-                redIndex = i*w + j+1;
-                greenIndex = i*w + j+2;
-                blueIndex = i*w + j+0;
-            }
+            // FOR TESTING ONLY
+            //            int wcolor = 255 * (float)j / (float)(w);
+            //            int hcolor = 255 * (float)i / (float)(img->height);
             
-            img->data[ redIndex ] = r; 
-            img->data[ greenIndex ] = g;
-            img->data[ blueIndex ] = b;
-
+            
+            writePixel(w, h, img->channels, j, i, RED, img->data, 0.5 * red);
+            writePixel(w, h, img->channels, j, i, GREEN, img->data, 0.5 * green);
+            writePixel(w, h, img->channels, j, i, BLUE, img->data, 0.5 * blue);
         }
     }
     
