@@ -57,9 +57,9 @@ void *finalstage (void *args) {
     char *framename = new char[strlen(OUTPUT_DIRECTORY) + 4 + strlen(zero) + 1];
     sprintf(framename, OUTPUT_DIRECTORY, zero, counter++);
     
-    Image *img = (Image *)args;
+    Image **img = (Image **)args;
     
-    saveImage(framename, img->width, img->height, img->channels, img->data);
+    saveImage(framename, img[0]->width, img[0]->height, img[0]->channels, img[0]->data);
     
     return NULL;
 }
@@ -83,7 +83,7 @@ int main (int argc, const char * argv[])
     
     
     // Give it some code that actually does stuff:
-    p.setStageCode(2, &colordarkenstage);
+    //p.setStageCode(2, &colordarkenstage);
     p.setStageCode(4, &finalstage);
     
     // Hook up the sensor, launch the simulation!
@@ -93,7 +93,7 @@ int main (int argc, const char * argv[])
     
     // just to prevent program from exiting immediately
     // (because separate threads are launched for the stages)
-    sleep(4);
+    sleep(2);
     
     std::cout << "...shutting down!\n";
     

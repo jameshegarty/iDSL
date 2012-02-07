@@ -51,7 +51,7 @@ public:
     bool powerOn();
 
     void setCode(void *(*fn)(void *)) { m_fn = fn; }
-
+    void setNFrames(int nFrames) { m_nFrames = nFrames; }
     
 private:
     
@@ -65,6 +65,7 @@ private:
     void *(*m_fn)(void *);
     pthread_t m_tid;
     const char *m_stageID;
+    int m_nFrames;
     
     CQueue *m_inQueue, *m_outQueue;
     
@@ -88,8 +89,9 @@ public:
      */
     bool powerOn();
     
-    void setStageCode(int stageNum, void *(*fn)(void *)) {
+    void setStageCode(int stageNum, void *(*fn)(void *), int nFrames = 1) {
         m_stages[stageNum]->setCode(fn);
+        m_stages[stageNum]->setNFrames(nFrames);
     }
     
     

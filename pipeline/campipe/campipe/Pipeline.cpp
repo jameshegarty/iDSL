@@ -18,6 +18,10 @@ struct PStageThreadArgs {
     CQueue *outQueue;
     void *(*fn)(void *);
     const char *stageID;
+    
+    // Allows simultaneous processing of multiple images
+    // (i.e. for image alignment)
+    int numFrames;
 };
 
 
@@ -32,6 +36,7 @@ PipelineStage::PipelineStage(EStageType stageType, const char *stageID)
     
     printf("Initializing stage: %s\n", m_stageID);
     m_fn = &empty_stage;
+    m_nFrames = 1;
 }
 
 
@@ -43,6 +48,7 @@ bool PipelineStage::powerOn() {
     stage->outQueue = m_outQueue;
     stage->fn = m_fn;
     stage->stageID = m_stageID;
+    stage->numFrames = m_nFrames;
     
     pthread_create(&m_tid, NULL, &runStage, (void *)stage);
     return true;
@@ -56,16 +62,29 @@ void *PipelineStage::runStage (void *vstage) {
     
     while (true) {
         
-        Image *fake = (Image *)stage->inQueue->pop();
+        Image *frames[stage->numFrames];
         
-        fake->stageName = stage->stageID;
+        for (int i = 0; i < stage->numFrames; i++) {
+            
+            // Grab the appropriate number of frames off the queue
+            // and place them into an array:
+            
+            frames[i] = (Image *)stage->inQueue->pop();
+            frames[i]->stageName = stage->stageID;
+        }
+
         
-        void *imgOut = stage->fn(fake);
+        // Pass the array to the stage function:
+        Image **imgOut = (Image **)stage->fn(&frames[0]);
         
-       // usleep(10000);
+        if (imgOut) {
         
-        stage->outQueue->push(imgOut);
-        
+            // Push each of the results
+            // TODO: for now, assumes that num input == num output
+            for (int i = 0; i < stage->numFrames; i++) {
+                stage->outQueue->push(imgOut[i]);
+            }
+        }
     }
 }
 
