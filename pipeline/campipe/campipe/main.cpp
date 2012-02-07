@@ -17,6 +17,42 @@
 static int counter = 0;
 
 
+// Dumb image merge, to test stage with 2 images
+void *sillymerge (void *args);
+void *sillymerge (void *args) {
+    
+    Image **img = (Image **)args;
+    int w = img[0]->width;
+    int h = img[0]->height;
+
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+     
+            unsigned char red0 = readPixel(w, h, img[0]->channels, j, i, RED, img[0]->data);
+            unsigned char green0 = readPixel(w, h, img[0]->channels, j, i, GREEN, img[0]->data);
+            unsigned char blue0 = readPixel(w, h, img[0]->channels, j, i, BLUE, img[0]->data);
+        
+            unsigned char red1 = readPixel(w, h, img[1]->channels, j, i, RED, img[1]->data);
+            unsigned char green1 = readPixel(w, h, img[1]->channels, j, i, GREEN, img[1]->data);
+            unsigned char blue1 = readPixel(w, h, img[1]->channels, j, i, BLUE, img[1]->data);
+            
+            unsigned char redmix = (red0 * 0.5 + red1 * 0.5);
+            unsigned char greenmix = (green0 * 0.5 + green1 * 0.5);
+            unsigned char bluemix = (blue0 * 0.5 + blue1 * 0.5);
+            
+            
+            writePixel(w, h, img[0]->channels, j, i, RED, img[0]->data, redmix);
+            writePixel(w, h, img[0]->channels, j, i, GREEN, img[0]->data, greenmix);
+            writePixel(w, h, img[0]->channels, j, i, BLUE, img[0]->data, bluemix);
+            
+            writePixel(w, h, img[0]->channels, j, i, RED, img[1]->data, redmix);
+            writePixel(w, h, img[0]->channels, j, i, GREEN, img[1]->data, greenmix);
+            writePixel(w, h, img[0]->channels, j, i, BLUE, img[1]->data, bluemix);
+        }
+    }
+    return img;
+}
+
 // Unary color transformation. Just a simple experiment.
 void *colordarkenstage (void *args);
 void *colordarkenstage (void *args) {
@@ -84,6 +120,7 @@ int main (int argc, const char * argv[])
     
     // Give it some code that actually does stuff:
     //p.setStageCode(2, &colordarkenstage);
+    p.setStageCode(1, &sillymerge, 2);
     p.setStageCode(4, &finalstage);
     
     // Hook up the sensor, launch the simulation!
