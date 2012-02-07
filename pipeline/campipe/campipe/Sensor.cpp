@@ -12,14 +12,21 @@
 #include "Sensor.h"
 #include "Image.h"
 #include "util.h"
+#include "pipelineConfig.h"
 
+
+// This struct is used to pass arguments to the 
+//  produceFrames callback.
 struct SensorThreadArgs {
     size_t fps;
     CQueue *queue;
 };
 
 
-Sensor::Sensor(size_t fps) : m_fps(fps) {}
+Sensor::Sensor(size_t fps) : m_fps(fps) {
+    m_queue = NULL;
+}
+
 
 void Sensor::setQueue(CQueue *q) { 
     m_queue = q; 
@@ -38,11 +45,11 @@ void *Sensor::produceFrames (void *args) {
     // TODO: LOTS OF SILLY MAGIC NUMS HERE
     char *framenums[14];
     for (int i = 0; i < 14; i++) {
-        const char *dir = "/Users/phaedon/dogdance/frame%s%d.bmp";
+        const char *dir = INPUT_DIRECTORY;
         framenums[i] = new char[strlen(dir) + 4 + 3 + 1];
         const char *zero = i < 10 ? "0" : "";
         sprintf(framenums[i], dir, zero, i);
-        printf("%s\n", framenums[i]);
+        //printf("%s\n", framenums[i]);
     }
          
     
@@ -73,6 +80,11 @@ void *Sensor::produceFrames (void *args) {
 }
 
 bool Sensor::powerOn() {
+    
+    if (!m_queue) {
+        printf("Error: Sensor not connected to pipeline.\n");
+        exit(-1);
+    }
     
     SensorThreadArgs *args = new SensorThreadArgs;
     args->fps = m_fps;

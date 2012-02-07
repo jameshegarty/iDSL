@@ -14,31 +14,20 @@
 #include "Image.h"
 
 
-/**
- * This is an example of a camera algorithm passed to a particular pipeline stage. 
- * (Obviously, this is fake and does nothing)
- */
-
-static void *fake_camera_algo(void *arg);
-
-void *fake_camera_algo(void *arg) {
-    
-    Image *fakeargs = (Image *)arg;
-    
-    
-   // printf("stage %s. Now  processing %s\n", fakeargs->stageName, fakeargs->frameName);
-    return fakeargs;
+// This function is a pipeline stage that does nothing.
+// It is the default function if no custom function is provided.
+// Should never be used in a real program, so it's here only
+// for testing.
+static void *empty_stage(void *arg);
+void *empty_stage(void *arg) {
+    return arg;
 }
 
 
 enum EStageType {EST_Fixed, EST_Configurable, EST_Programmable};
 
-struct PStage {
-    CQueue *inQueue;
-    CQueue *outQueue;
-    void *(*fn)(void *);
-    const char *stageID;
-};
+
+
 
 /**
  * PipelineStage
@@ -50,15 +39,7 @@ class PipelineStage {
     
 public:
     
-    /**
-     * 
-     */
     PipelineStage(EStageType stageType, const char *stageID);
-    
-    
-    /**
-     * 
-     */
     ~PipelineStage() {}
     
     

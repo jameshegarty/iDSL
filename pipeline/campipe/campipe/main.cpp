@@ -8,23 +8,22 @@
 #include <iostream>
 #include "Pipeline.h"
 #include "util.h"
+#include "pipelineConfig.h"
 
+
+// Using this to name the output frames.
+// Although not threadsafe, I'm only modifying this from one thread
+// (the final stage, which saves images to disk) so it's fine.
 static int counter = 0;
 
-void *colordarkenstage (void *args);
 
+// Unary color transformation. Just a simple experiment.
+void *colordarkenstage (void *args);
 void *colordarkenstage (void *args) {
     Image *img = (Image *)args;
 
     int w = img->width;
     int h = img->height;
-    
-    // bmps pad each row to be a multiple of 4 bytes
-    int padding = 4 - (w * 3 % 4); // we always write 3 channels
-    padding = padding == 4 ? 0 : padding;
-    
-    //printf("padding: %d\n", padding);
-    //printf("width: %d   height: %d\n", w, h);
     
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {
@@ -33,11 +32,9 @@ void *colordarkenstage (void *args) {
             unsigned char green = readPixel(w, h, img->channels, j, i, GREEN, img->data);
             unsigned char blue = readPixel(w, h, img->channels, j, i, BLUE, img->data);
             
-            
             // FOR TESTING ONLY
             //            int wcolor = 255 * (float)j / (float)(w);
             //            int hcolor = 255 * (float)i / (float)(img->height);
-            
             
             writePixel(w, h, img->channels, j, i, RED, img->data, 0.5 * red);
             writePixel(w, h, img->channels, j, i, GREEN, img->data, 0.5 * green);
@@ -49,16 +46,16 @@ void *colordarkenstage (void *args) {
 }
 
 
+// Saves output frames to disk. Not a real pipeline stage, but
+// useful for the simulation.
 void *finalstage (void *args);
-
 void *finalstage (void *args) {
     
-    // TODO: LOTS OF SILLY MAGIC NUMS HERE
-    const char *dir = "/Users/phaedon/dogdance/output/frame%s%d.bmp";
-    char *framename = new char[strlen(dir) + 4 + 3 + 1];
+    // Add a padding zero for small numbers
     const char *zero = counter < 10 ? "0" : "";
-    sprintf(framename, dir, zero, counter++);
-    //printf("%s\n", framename);
+
+    char *framename = new char[strlen(OUTPUT_DIRECTORY) + 4 + strlen(zero) + 1];
+    sprintf(framename, OUTPUT_DIRECTORY, zero, counter++);
     
     Image *img = (Image *)args;
     
@@ -96,9 +93,9 @@ int main (int argc, const char * argv[])
     
     // just to prevent program from exiting immediately
     // (because separate threads are launched for the stages)
-    sleep(2);
+    sleep(4);
     
-    std::cout << "Hello, World!\n";
+    std::cout << "...shutting down!\n";
     
     return 0;
 }

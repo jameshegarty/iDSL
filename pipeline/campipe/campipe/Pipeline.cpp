@@ -11,6 +11,17 @@
 
 
 
+
+// This struct is used to pass arguments to the runStage callback.
+struct PStageThreadArgs {
+    CQueue *inQueue;
+    CQueue *outQueue;
+    void *(*fn)(void *);
+    const char *stageID;
+};
+
+
+
 /*******************
  * PIPELINESTAGE
  *******************/
@@ -20,14 +31,14 @@ PipelineStage::PipelineStage(EStageType stageType, const char *stageID)
 : m_stageID(stageID) {
     
     printf("Initializing stage: %s\n", m_stageID);
-    m_fn = &fake_camera_algo; 
+    m_fn = &empty_stage;
 }
 
 
 
 bool PipelineStage::powerOn() { 
     
-    PStage *stage = new PStage;
+    PStageThreadArgs *stage = new PStageThreadArgs;
     stage->inQueue = m_inQueue;
     stage->outQueue = m_outQueue;
     stage->fn = m_fn;
@@ -41,7 +52,7 @@ bool PipelineStage::powerOn() {
 void *PipelineStage::runStage (void *vstage) {
     
     // Cast to the struct of arguments
-    PStage *stage = (PStage *)vstage;
+    PStageThreadArgs *stage = (PStageThreadArgs *)vstage;
     
     while (true) {
         
@@ -83,9 +94,7 @@ Pipeline::Pipeline(size_t nStages, EStageType stageTypes[]) : m_nStages(nStages)
         m_stages[i]->setQueues(&m_queues[i], &m_queues[i+1]);
     }
     
-    m_sensor = new Sensor(12);
-    m_sensor->setQueue(&m_queues[0]);
-    
+    m_sensor = NULL;
 }
 
 
@@ -108,11 +117,14 @@ void Pipeline::connectSensor(Sensor *sensor) {
 
 
 bool Pipeline::powerOn() {
+    
     for (size_t i = 0; i < m_nStages; ++i) {
         m_stages[i]->powerOn();
     }
     
-    m_sensor->powerOn();
+    if (m_sensor) {
+        m_sensor->powerOn();
+    }
     
     return false;
 }

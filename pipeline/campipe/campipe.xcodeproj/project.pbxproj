@@ -28,6 +28,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		82C8588D14E105BA00F0325B /* pipelineConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pipelineConfig.h; sourceTree = "<group>"; };
 		82D2B0F414D9C7D5005F67D3 /* campipe */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = campipe; sourceTree = BUILT_PRODUCTS_DIR; };
 		82D2B0F814D9C7D5005F67D3 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		82D2B0FA14D9C7D5005F67D3 /* campipe.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = campipe.1; sourceTree = "<group>"; };
@@ -71,6 +72,7 @@
 		82D2B0F714D9C7D5005F67D3 /* campipe */ = {
 			isa = PBXGroup;
 			children = (
+				82C8588D14E105BA00F0325B /* pipelineConfig.h */,
 				82D2B10914DB3AEB005F67D3 /* util.h */,
 				82D2B10A14DB3AEB005F67D3 /* util.cpp */,
 				82D2B0F814D9C7D5005F67D3 /* main.cpp */,
@@ -223,6 +225,7 @@
 				82D2B10014D9C7D5005F67D3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
