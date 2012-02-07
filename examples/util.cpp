@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 
+unsigned int endian(unsigned int x);
 unsigned int endian(unsigned int x){return x;}
 
 void drawLine( 
@@ -97,6 +98,26 @@ unsigned char sampleNearest(int width, int height, float x, float y, const unsig
 
   return in[iy*width+ix];
 }
+
+
+unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
+                        int x, int y, Color colorChannel,
+                        const unsigned char *data) {
+    
+    int byteWidth = imgWidth * nChannels;
+    int rowOffset = x * nChannels + colorChannel;
+    return data[y * byteWidth + rowOffset];
+}
+
+void writePixel(int imgWidth, int imgHeight, int nChannels, 
+                int x, int y, Color colorChannel,
+                unsigned char *data, unsigned char color) {
+    int byteWidth = imgWidth * nChannels;
+    int rowOffset = x * nChannels + colorChannel;
+    data[y * byteWidth + rowOffset] = color;
+}
+
+
 
 bool loadImage(const char *filename, int* width, int* height, int *channels, unsigned char **data){
 
