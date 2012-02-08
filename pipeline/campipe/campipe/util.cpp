@@ -7,17 +7,6 @@
 unsigned int endian(unsigned int x);
 unsigned int endian(unsigned int x){return x;}
 
-void toGrayscale( int width, int height, unsigned int *dataIn, float *grayscaleOut){
-
-  for(int i=0; i<width*height; i++){
-    float r = dataIn[i*3];
-    float g = dataIn[i*3+1];
-    float b = dataIn[i*3+2];
-    grayscaleOut[i] = sqrt(r*r+g*g+b*b) / sqrt(3*255*255);
-  }
-
-}
-
 void drawLine( 
   int width, 
   int height, 

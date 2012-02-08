@@ -1,0 +1,239 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		82C8589114E1E69D00F0325B /* stagecode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82C8589014E1E69D00F0325B /* stagecode.cpp */; };
+		82D2B0F914D9C7D5005F67D3 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B0F814D9C7D5005F67D3 /* main.cpp */; };
+		82D2B0FB14D9C7D5005F67D3 /* campipe.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 82D2B0FA14D9C7D5005F67D3 /* campipe.1 */; };
+		82D2B10214D9C7EE005F67D3 /* Pipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B10114D9C7EE005F67D3 /* Pipeline.cpp */; };
+		82D2B10814DA0E36005F67D3 /* Sensor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B10714DA0E36005F67D3 /* Sensor.cpp */; };
+		82D2B10B14DB3AEB005F67D3 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B10A14DB3AEB005F67D3 /* util.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		82D2B0F214D9C7D5005F67D3 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				82D2B0FB14D9C7D5005F67D3 /* campipe.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		82C8588D14E105BA00F0325B /* pipelineConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pipelineConfig.h; sourceTree = "<group>"; };
+		82C8588F14E1E68E00F0325B /* stagecode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stagecode.h; sourceTree = "<group>"; };
+		82C8589014E1E69D00F0325B /* stagecode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stagecode.cpp; sourceTree = "<group>"; };
+		82D2B0F414D9C7D5005F67D3 /* campipe */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = campipe; sourceTree = BUILT_PRODUCTS_DIR; };
+		82D2B0F814D9C7D5005F67D3 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		82D2B0FA14D9C7D5005F67D3 /* campipe.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = campipe.1; sourceTree = "<group>"; };
+		82D2B10114D9C7EE005F67D3 /* Pipeline.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Pipeline.cpp; sourceTree = "<group>"; };
+		82D2B10314D9C7FD005F67D3 /* Pipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Pipeline.h; sourceTree = "<group>"; };
+		82D2B10414D9F8E7005F67D3 /* CQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CQueue.h; sourceTree = "<group>"; };
+		82D2B10514D9FC21005F67D3 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
+		82D2B10614DA09BD005F67D3 /* Sensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Sensor.h; sourceTree = "<group>"; };
+		82D2B10714DA0E36005F67D3 /* Sensor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Sensor.cpp; sourceTree = "<group>"; };
+		82D2B10914DB3AEB005F67D3 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		82D2B10A14DB3AEB005F67D3 /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		82D2B0F114D9C7D5005F67D3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		82D2B0E914D9C7D5005F67D3 = {
+			isa = PBXGroup;
+			children = (
+				82D2B0F714D9C7D5005F67D3 /* campipe */,
+				82D2B0F514D9C7D5005F67D3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		82D2B0F514D9C7D5005F67D3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				82D2B0F414D9C7D5005F67D3 /* campipe */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		82D2B0F714D9C7D5005F67D3 /* campipe */ = {
+			isa = PBXGroup;
+			children = (
+				82C8588D14E105BA00F0325B /* pipelineConfig.h */,
+				82D2B10914DB3AEB005F67D3 /* util.h */,
+				82D2B10A14DB3AEB005F67D3 /* util.cpp */,
+				82D2B0F814D9C7D5005F67D3 /* main.cpp */,
+				82D2B10314D9C7FD005F67D3 /* Pipeline.h */,
+				82D2B10114D9C7EE005F67D3 /* Pipeline.cpp */,
+				82D2B10414D9F8E7005F67D3 /* CQueue.h */,
+				82D2B10614DA09BD005F67D3 /* Sensor.h */,
+				82D2B10714DA0E36005F67D3 /* Sensor.cpp */,
+				82D2B10514D9FC21005F67D3 /* Image.h */,
+				82D2B0FA14D9C7D5005F67D3 /* campipe.1 */,
+				82C8588F14E1E68E00F0325B /* stagecode.h */,
+				82C8589014E1E69D00F0325B /* stagecode.cpp */,
+			);
+			path = campipe;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		82D2B0F314D9C7D5005F67D3 /* campipe */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 82D2B0FE14D9C7D5005F67D3 /* Build configuration list for PBXNativeTarget "campipe" */;
+			buildPhases = (
+				82D2B0F014D9C7D5005F67D3 /* Sources */,
+				82D2B0F114D9C7D5005F67D3 /* Frameworks */,
+				82D2B0F214D9C7D5005F67D3 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = campipe;
+			productName = campipe;
+			productReference = 82D2B0F414D9C7D5005F67D3 /* campipe */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		82D2B0EB14D9C7D5005F67D3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = 82D2B0EE14D9C7D5005F67D3 /* Build configuration list for PBXProject "campipe" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 82D2B0E914D9C7D5005F67D3;
+			productRefGroup = 82D2B0F514D9C7D5005F67D3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				82D2B0F314D9C7D5005F67D3 /* campipe */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		82D2B0F014D9C7D5005F67D3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				82D2B0F914D9C7D5005F67D3 /* main.cpp in Sources */,
+				82D2B10214D9C7EE005F67D3 /* Pipeline.cpp in Sources */,
+				82D2B10814DA0E36005F67D3 /* Sensor.cpp in Sources */,
+				82D2B10B14DB3AEB005F67D3 /* util.cpp in Sources */,
+				82C8589114E1E69D00F0325B /* stagecode.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		82D2B0FC14D9C7D5005F67D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		82D2B0FD14D9C7D5005F67D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		82D2B0FF14D9C7D5005F67D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		82D2B10014D9C7D5005F67D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		82D2B0EE14D9C7D5005F67D3 /* Build configuration list for PBXProject "campipe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				82D2B0FC14D9C7D5005F67D3 /* Debug */,
+				82D2B0FD14D9C7D5005F67D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		82D2B0FE14D9C7D5005F67D3 /* Build configuration list for PBXNativeTarget "campipe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				82D2B0FF14D9C7D5005F67D3 /* Debug */,
+				82D2B10014D9C7D5005F67D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 82D2B0EB14D9C7D5005F67D3 /* Project object */;
+}
