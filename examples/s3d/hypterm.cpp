@@ -4,46 +4,39 @@
 #include <cmath>
 
 #include "constants.h"
+#include "iterator.h"
 
 void init(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres){
     double scale[3]={0.02,0.02,0.02};
 
-    for(int i0=0;i0<n[0]+2*ng[0];i0++){
-        for(int i1=0;i1<n[1]+2*ng[1];i1++){
-            for(int i2=0;i2<n[2]+2*ng[2];i2++){
-                for(int i3=I_SP;i3<nspec+5;i3++){
-                    cons[i0][i1][i2][i3]=0.0;
-                }
-            }
+    for(Iterator iter(n[0],n[1],n[2],ng[0],ng[1],ng[2]);iter.Valid();iter.Next()){
+        for(int i3=I_SP;i3<nspec+5;i3++){
+            cons[iter.I0()][iter.I1()][iter.I2()][i3]=0.0;
         }
     }
 
-    for(int i=0;i<n[0]+2*ng[0];i++){
-        double xloc=(i-ng[0]+1)*dx[0]/scale[0];
-        for(int j=0;j<n[1]+2*ng[1];j++){
-            double yloc=(j-ng[1]+1)*dx[1]/scale[1];
-            for(int k=0;k<n[2]+2*ng[2];k++){
-                double zloc=(k-ng[2]+1)*dx[2]/scale[2];
-                double uvel=sin(xloc)*sin(2.0*yloc)*sin(3.0*zloc);
-                double vvel=sin(2.0*xloc)*sin(4.0*yloc)*sin(zloc);
-                double wvel=sin(3.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
-                double rholoc=1e-3+1e-5*sin(xloc)*cos(2.0*yloc)*cos(3.0*zloc);
-                double ploc=1e6+1e-3*sin(2.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
+    for(Iterator iter(n[0],n[1],n[2],ng[0],ng[1],ng[2]);iter.Valid();iter.Next()){
+        double xloc=(iter.I0()-ng[0]+1)*dx[0]/scale[0];
+        double yloc=(iter.I1()-ng[1]+1)*dx[1]/scale[1];
+        double zloc=(iter.I2()-ng[2]+1)*dx[2]/scale[2];
+        double uvel=sin(xloc)*sin(2.0*yloc)*sin(3.0*zloc);
+        double vvel=sin(2.0*xloc)*sin(4.0*yloc)*sin(zloc);
+        double wvel=sin(3.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
+        double rholoc=1e-3+1e-5*sin(xloc)*cos(2.0*yloc)*cos(3.0*zloc);
+        double ploc=1e6+1e-3*sin(2.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
 
-                cons[i][j][k][I_RHO]=rholoc;
-                cons[i][j][k][I_MX]=rholoc*uvel;
-                cons[i][j][k][I_MY]=rholoc*vvel;
-                cons[i][j][k][I_MZ]=rholoc*wvel;
-                cons[i][j][k][I_ENE]=ploc/0.4+rholoc*(uvel*uvel+vvel*vvel+wvel*wvel)/2.0;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_RHO]=rholoc;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_MX]=rholoc*uvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_MY]=rholoc*vvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_MZ]=rholoc*wvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_ENE]=ploc/0.4+rholoc*(uvel*uvel+vvel*vvel+wvel*wvel)/2.0;
 
-                pres[i][j][k]=ploc;
+        pres[iter.I0()][iter.I1()][iter.I2()]=ploc;
 
-                cons[i][j][k][I_SP]=0.2+0.1*uvel;
-                cons[i][j][k][I_SP+1]=0.2+0.05*vvel;
-                cons[i][j][k][I_SP+2]=0.2+0.03*wvel;
-                cons[i][j][k][I_SP+3]=1.0-cons[i][j][k][I_SP]-cons[i][j][k][I_SP+1]-cons[i][j][k][I_SP+2];
-            }
-        }
+        cons[iter.I0()][iter.I1()][iter.I2()][I_SP]=0.2+0.1*uvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_SP+1]=0.2+0.05*vvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_SP+2]=0.2+0.03*wvel;
+        cons[iter.I0()][iter.I1()][iter.I2()][I_SP+3]=1.0-cons[iter.I0()][iter.I1()][iter.I2()][I_SP]-cons[iter.I0()][iter.I1()][iter.I2()][I_SP+1]-cons[iter.I0()][iter.I1()][iter.I2()][I_SP+2];
     }
 }
 void hypterm0(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){

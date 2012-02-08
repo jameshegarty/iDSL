@@ -1,5 +1,5 @@
 CXX=g++
-SRC_CXX:=hypterm.cpp constants.h
+SRC_CXX:=hypterm.cpp constants.h iterator.h iterator.cpp
 EXECUTABLE_CXX:=hypterm_cpp
 
 FORTRAN=gfortran
