@@ -6,12 +6,16 @@ enum Color {RED, GREEN, BLUE, ALPHA, LUM};
 const float PI = 3.1415926f;
 
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
+bool loadImage(const char *file, int* width, int* height, int *channels, unsigned short **data);
 bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
-
-bool loadPGM(const char *file, int* width, int* height, unsigned short **data); // return 16 bit data
-
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
+
+bool loadBMP(const char *file, int* width, int* height, int *channels, unsigned char **data);
+bool saveBMP(const char *file, int width, int height, int channels, unsigned char *data);
+bool saveBMP(const char *file, int width, int height, int channels, float *data);
+bool loadPGM(const char *file, int* width, int* height, unsigned short **data); // return 16 bit data
+bool loadTMP(const char *file, int* width, int* height, int* channels, unsigned short **data); // return 16 bit data
 
 unsigned char sampleBilinear(int width, int height, float x, float y, const unsigned char* in);
 unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in);

@@ -81,31 +81,35 @@ void demosaicStupid(
 
 void equalize(int width, int height, unsigned short* in, unsigned short* out){
 
+  unsigned short m = mean(width*height,in);
+  printf("mean %d\n",m);
+
   for(int i=0; i<width*height; i++){
-    out[i] = in[i]/10;
+    out[i] = in[i];
   }
 
 }
 
 int main(int argc, char **argv){
 
-  if(argc!=2){
-    printf("Usage: demosaic image.pgm");
+  if(argc!=4){
+    printf("Usage: demosaic image.pgm demosaicOffsetX demosaicOffsetY");
+    printf("1,1 offset for Canon 300D\n");
+    printf("0,1 offset for Basler\n");
     return 1;
   }
 
-  int width, height;
+  int width, height, channels;
   unsigned short *data;
 
-  loadPGM(argv[1], &width, &height, &data);
+  loadImage(argv[1], &width, &height, &channels, &data);
 
-  unsigned short m = mean(width*height,data);
-  printf("mean %d\n",m);
+  assert(channels==1);
 
   unsigned short *pixelsTemp = new unsigned short[width*height*3];
   unsigned char *out = new unsigned char[width*height*3];
 
-  demosaicStupid(width,height,1,1,data,pixelsTemp);
+  demosaicStupid(width,height,atoi(argv[2]),atoi(argv[3]),data,pixelsTemp);
 
   for(int c=0; c<3; c++){
     equalize(width,height,&(pixelsTemp[width*height*c]), &(pixelsTemp[width*height*c]) );

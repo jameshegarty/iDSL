@@ -141,8 +141,18 @@ void writePixel(int imgWidth, int imgHeight, int nChannels,
 }
 
 
-
 bool loadImage(const char *filename, int* width, int* height, int *channels, unsigned char **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return loadBMP(filename,width,height,channels,data);
+  }
+
+  printf("unknown filetype %s\n",filename);
+  return false;
+}
+
+bool loadBMP(const char *filename, int* width, int* height, int *channels, unsigned char **data){
 
   unsigned int currentCurPos=0;
   
@@ -555,6 +565,20 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
   return true;
 }
 
+bool loadImage(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"pgm")==0){
+    *channels = 1;
+    return loadPGM(filename,width,height,data);
+  }else if(strcmp(ext,"tmp")==0){
+    return loadTMP(filename,width,height,channels,data);
+  }
+
+  printf("unknown filetype %s %s\n",filename, ext);
+  return false;
+}
+
 bool loadPGM(const char *filename, int* width, int* height, unsigned short **data){
 
   assert(sizeof(unsigned short)==2);
@@ -602,3 +626,53 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
 
   return true;
 }
+
+bool loadTMP(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+
+  assert(sizeof(unsigned short)==2);
+
+  FILE *file = fopen(filename,"rb");
+
+  enum TypeCode {FLOAT32 = 0, FLOAT64, UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64};
+
+  // get the dimensions
+  struct header_t {
+    int frames, width, height, channels, typeCode;
+  } h;
+
+  assert(fread(&h, sizeof(int), 5, file) == 5);
+  //	 "File ended before end of header\n");
+
+  printf("%d %d %d %d %d\n",h.frames, h.width, h.height, h.channels, h.typeCode);
+
+  assert(h.frames == 1);
+
+  *width = h.width;
+  *height = h.height;
+  *channels = h.channels;
+
+  if(h.typeCode == FLOAT32){
+    printf("float32\n");
+  }else{
+    printf("unsupported bit depth %d\n",h.typeCode);
+    return false;
+  }
+
+  int size = (*width) * (*height) * (*channels);
+  *data = new unsigned short[size];
+  float *tempData = new float[size];
+
+  fread(tempData, size*sizeof(float), 1, file);
+
+  // convert to short & flip y
+  for(int x=0; x<(*width); x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[((*height)-y)*(*width)+x] = tempData[y*(*width)+x];
+    }
+  }
+
+  delete[] tempData;
+
+  return true;
+}
+
