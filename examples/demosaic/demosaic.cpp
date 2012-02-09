@@ -84,8 +84,11 @@ void equalize(int width, int height, unsigned short* in, unsigned short* out){
   unsigned short m = mean(width*height,in);
   printf("mean %d\n",m);
 
+  float scaleFactor = 100.f / float(m);
+
   for(int i=0; i<width*height; i++){
-    out[i] = in[i];
+    float temp = float(in[i]) * scaleFactor;
+    out[i] = temp > 255.f ? 255.f : temp;
   }
 
 }
@@ -93,9 +96,9 @@ void equalize(int width, int height, unsigned short* in, unsigned short* out){
 int main(int argc, char **argv){
 
   if(argc!=4){
-    printf("Usage: demosaic image.pgm demosaicOffsetX demosaicOffsetY");
-    printf("1,1 offset for Canon 300D\n");
-    printf("0,1 offset for Basler\n");
+    printf("Usage: demosaic image.pgm demosaicOffsetX demosaicOffsetY\n");
+    printf("1 1 offset for Canon 300D\n");
+    printf("0 1 offset for Basler\n");
     return 1;
   }
 

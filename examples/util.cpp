@@ -9,12 +9,20 @@ unsigned int endian(unsigned int x){return x;}
 unsigned short endianBig(unsigned short x){return (x>>8) |  (x<<8);} // on intel mac, swap big to little
 
 unsigned short mean(int size, unsigned short *in){
-  float mean = in[0];
+  /*  float mean = in[0];
 
   for(int i=1; i<size; i++){
     mean = mean + (float(in[0]) - mean)/float(size);
     //if(i%100==0){printf("%f\n",mean);}
   }
+  */
+
+  float mean = 0;
+  for(int i=0; i<size; i++){
+    mean += in[i];
+  }
+
+  return mean/float(size);
 
   return mean;
 }
