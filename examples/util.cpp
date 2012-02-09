@@ -6,6 +6,18 @@
 
 unsigned int endian(unsigned int x);
 unsigned int endian(unsigned int x){return x;}
+unsigned short endianBig(unsigned short x){return (x>>8) |  (x<<8);} // on intel mac, swap big to little
+
+unsigned short mean(int size, unsigned short *in){
+  float mean = in[0];
+
+  for(int i=1; i<size; i++){
+    mean = mean + (float(in[0]) - mean)/float(size);
+    //if(i%100==0){printf("%f\n",mean);}
+  }
+
+  return mean;
+}
 
 void toGrayscale( int width, int height, unsigned int *dataIn, float *grayscaleOut){
 
@@ -540,5 +552,53 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
   fclose(file);
     
   // we're done.
+  return true;
+}
+
+bool loadPGM(const char *filename, int* width, int* height, unsigned short **data){
+
+  assert(sizeof(unsigned short)==2);
+
+  FILE *file = fopen(filename,"rb");
+
+  char temp[16];
+
+  fgets(temp,sizeof(temp),file);
+
+  if(strcmp(temp,"P5\n")!=0){
+    printf("Error, incorrect PGM type %s\n",temp);
+    return false;
+  }
+
+  fgets(temp,sizeof(temp),file);
+  printf(" %s\n",temp);
+
+  sscanf(temp,"%d %d", width, height);
+
+  fgets(temp,sizeof(temp),file);
+
+  if(strcmp(temp,"65535\n")==0){
+    printf("16 bit");
+  }else if(strcmp(temp,"255\n")==0){
+    printf("8 bit");
+  }else{
+    printf("unknown bit depth %s\n",temp);
+    return false;
+  }
+
+  *data = new unsigned short[ (*width) * (*height)];
+  unsigned short *tempData = new unsigned short[ (*width) * (*height)];
+
+  fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file);
+
+  // flip endian + row order
+  for(int x=0; x<(*width); x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[((*height)-y)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
+    }
+  }
+
+  delete[] tempData;
+
   return true;
 }

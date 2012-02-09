@@ -8,6 +8,8 @@ const float PI = 3.1415926f;
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
 bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
 
+bool loadPGM(const char *file, int* width, int* height, unsigned short **data); // return 16 bit data
+
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
 
@@ -20,6 +22,8 @@ float sum(int width, int height, float *kernel);
 void drawLine( int width, int height, unsigned char *data, int x0, int y0, int x1, int y1);
 
 void toGrayscale( int width, int height, unsigned int *dataIn, float *grayscaleOut);
+
+unsigned short mean(int size, unsigned short *in);
 
 template<typename T>
 T clamp(T Value, T Min, T Max){
