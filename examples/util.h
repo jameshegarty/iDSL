@@ -25,7 +25,8 @@ float sum(int width, int height, float *kernel);
 
 void drawLine( int width, int height, unsigned char *data, int x0, int y0, int x1, int y1);
 
-void toGrayscale( int width, int height, unsigned int *dataIn, float *grayscaleOut);
+void toGrayscale( int width, int height, unsigned char *dataIn, float *grayscaleOut);
+void toGrayscale( int width, int height, unsigned char *dataIn, unsigned char *grayscaleOut);
 
 unsigned short mean(int size, unsigned short *in);
 

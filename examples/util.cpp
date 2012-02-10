@@ -27,13 +27,24 @@ unsigned short mean(int size, unsigned short *in){
   return mean;
 }
 
-void toGrayscale( int width, int height, unsigned int *dataIn, float *grayscaleOut){
+void toGrayscale( int width, int height, unsigned char *dataIn, float *grayscaleOut){
 
   for(int i=0; i<width*height; i++){
     float r = dataIn[i*3];
     float g = dataIn[i*3+1];
     float b = dataIn[i*3+2];
     grayscaleOut[i] = sqrt(r*r+g*g+b*b) / sqrt(3*255*255);
+  }
+
+}
+
+void toGrayscale( int width, int height, unsigned char *dataIn, unsigned char *grayscaleOut){
+
+  for(int i=0; i<width*height; i++){
+    float r = dataIn[i*3];
+    float g = dataIn[i*3+1];
+    float b = dataIn[i*3+2];
+    grayscaleOut[i] = sqrt(r*r+g*g+b*b)*255.f/sqrt(255*255*3);
   }
 
 }
