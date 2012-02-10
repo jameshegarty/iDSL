@@ -14,8 +14,13 @@ void ofBrute(
 
   int border = windowRadius+diffRadius;
 
+  printf("\n");
+
   for(int x = border; x < width - border; x++){
+    printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
+
     for(int y = border; y < height - border; y++){
+
 
       unsigned int lowestDiff = 1000000;
       int lowestDiffX=-100;
@@ -53,6 +58,7 @@ void ofBrute(
       out[3*(y*width+x)+1]=128+lowestDiffY*10;
     }
   }
+
 }
 
 int main(int argc, char **argv){
