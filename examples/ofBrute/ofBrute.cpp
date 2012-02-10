@@ -88,7 +88,7 @@ int main(int argc, char **argv){
   ofBrute(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
 
 
-  saveImage("out.bmp", width, height, channels, out);
+  saveImage("vectors.bmp", width, height, channels, out);
 
   delete[] frame1;
   delete[] frame2;
