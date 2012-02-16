@@ -228,7 +228,7 @@ int main(int argc, const char *argv[]){
     const int nspec=9;
     const double dx[3]={1e-3,1e-3,1e-3};
     
-    const int n[3]={192,192,192};
+    const int n[3]={64,64,64};
     const int ng[3]={4,4,4};
 
     double ***pres=new double**[n[0]+2*ng[0]];
