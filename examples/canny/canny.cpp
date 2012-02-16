@@ -119,13 +119,7 @@ void cannyEdgeDetection(
   float *gradientX = new float[width*height];
   float *gradientY = new float[width*height];
 
-
-  for(int i=0; i<width*height; i++){
-    float r = data[i*3];
-    float g = data[i*3+1];
-    float b = data[i*3+2];
-    dataMagnitude[i] = sqrt(r*r+g*g+b*b) / sqrt(3*255*255);
-  }
+  toGrayscale(width,height,data,dataMagnitude);
 
   convolve2DClamped(
     width, 

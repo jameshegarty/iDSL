@@ -26,6 +26,12 @@ public:
         pthread_mutex_init(&m_lock, NULL);
     }
     
+    
+    // Adds an element and signals other threads waiting.
+    // Note that this queue is (currently) unbounded so there is
+    // no need to check for space and wait. 
+    // A finite buffer may be a good idea eventually for a more realistic
+    // simulation.
     void push(void *elem) {
         pthread_mutex_lock(&m_lock);
         m_queue.push(elem);
@@ -33,7 +39,9 @@ public:
         pthread_mutex_unlock(&m_lock);
     }
     
-    void * pop() {
+    
+    // Waits until there's an element in the queue to remove.
+    void *pop() {
         
         void *elem = NULL;
         

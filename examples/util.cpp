@@ -4,7 +4,50 @@
 #include <math.h>
 #include <assert.h>
 
+unsigned int endian(unsigned int x);
 unsigned int endian(unsigned int x){return x;}
+unsigned short endianBig(unsigned short x){return (x>>8) |  (x<<8);} // on intel mac, swap big to little
+
+unsigned short mean(int size, unsigned short *in){
+  /*  float mean = in[0];
+
+  for(int i=1; i<size; i++){
+    mean = mean + (float(in[0]) - mean)/float(size);
+    //if(i%100==0){printf("%f\n",mean);}
+  }
+  */
+
+  float mean = 0;
+  for(int i=0; i<size; i++){
+    mean += in[i];
+  }
+
+  return mean/float(size);
+
+  return mean;
+}
+
+void toGrayscale( int width, int height, unsigned char *dataIn, float *grayscaleOut){
+
+  for(int i=0; i<width*height; i++){
+    float r = dataIn[i*3];
+    float g = dataIn[i*3+1];
+    float b = dataIn[i*3+2];
+    grayscaleOut[i] = sqrt(r*r+g*g+b*b) / sqrt(3*255*255);
+  }
+
+}
+
+void toGrayscale( int width, int height, unsigned char *dataIn, unsigned char *grayscaleOut){
+
+  for(int i=0; i<width*height; i++){
+    float r = dataIn[i*3];
+    float g = dataIn[i*3+1];
+    float b = dataIn[i*3+2];
+    grayscaleOut[i] = sqrt(r*r+g*g+b*b)*255.f/sqrt(255*255*3);
+  }
+
+}
 
 void drawLine( 
   int width, 
@@ -98,7 +141,37 @@ unsigned char sampleNearest(int width, int height, float x, float y, const unsig
   return in[iy*width+ix];
 }
 
+
+unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
+                        int x, int y, Color colorChannel,
+                        const unsigned char *data) {
+    
+    int byteWidth = imgWidth * nChannels;
+    int rowOffset = x * nChannels + colorChannel;
+    return data[y * byteWidth + rowOffset];
+}
+
+void writePixel(int imgWidth, int imgHeight, int nChannels, 
+                int x, int y, Color colorChannel,
+                unsigned char *data, unsigned char color) {
+    int byteWidth = imgWidth * nChannels;
+    int rowOffset = x * nChannels + colorChannel;
+    data[y * byteWidth + rowOffset] = color;
+}
+
+
 bool loadImage(const char *filename, int* width, int* height, int *channels, unsigned char **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return loadBMP(filename,width,height,channels,data);
+  }
+
+  printf("unknown filetype %s\n",filename);
+  return false;
+}
+
+bool loadBMP(const char *filename, int* width, int* height, int *channels, unsigned char **data){
 
   unsigned int currentCurPos=0;
   
@@ -510,3 +583,115 @@ bool saveImage(const char *filename, int width, int height, int channels, unsign
   // we're done.
   return true;
 }
+
+bool loadImage(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"pgm")==0){
+    *channels = 1;
+    return loadPGM(filename,width,height,data);
+  }else if(strcmp(ext,"tmp")==0){
+    return loadTMP(filename,width,height,channels,data);
+  }
+
+  printf("unknown filetype %s %s\n",filename, ext);
+  return false;
+}
+
+bool loadPGM(const char *filename, int* width, int* height, unsigned short **data){
+
+  assert(sizeof(unsigned short)==2);
+
+  FILE *file = fopen(filename,"rb");
+
+  char temp[16];
+
+  fgets(temp,sizeof(temp),file);
+
+  if(strcmp(temp,"P5\n")!=0){
+    printf("Error, incorrect PGM type %s\n",temp);
+    return false;
+  }
+
+  fgets(temp,sizeof(temp),file);
+  printf(" %s\n",temp);
+
+  sscanf(temp,"%d %d", width, height);
+
+  fgets(temp,sizeof(temp),file);
+
+  if(strcmp(temp,"65535\n")==0){
+    printf("16 bit");
+  }else if(strcmp(temp,"255\n")==0){
+    printf("8 bit");
+  }else{
+    printf("unknown bit depth %s\n",temp);
+    return false;
+  }
+
+  *data = new unsigned short[ (*width) * (*height)];
+  unsigned short *tempData = new unsigned short[ (*width) * (*height)];
+
+  fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file);
+
+  // flip endian + row order
+  for(int x=0; x<(*width); x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[((*height)-y)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
+    }
+  }
+
+  delete[] tempData;
+
+  return true;
+}
+
+bool loadTMP(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+
+  assert(sizeof(unsigned short)==2);
+
+  FILE *file = fopen(filename,"rb");
+
+  enum TypeCode {FLOAT32 = 0, FLOAT64, UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64};
+
+  // get the dimensions
+  struct header_t {
+    int frames, width, height, channels, typeCode;
+  } h;
+
+  assert(fread(&h, sizeof(int), 5, file) == 5);
+  //	 "File ended before end of header\n");
+
+  printf("%d %d %d %d %d\n",h.frames, h.width, h.height, h.channels, h.typeCode);
+
+  assert(h.frames == 1);
+
+  *width = h.width;
+  *height = h.height;
+  *channels = h.channels;
+
+  if(h.typeCode == FLOAT32){
+    printf("float32\n");
+  }else{
+    printf("unsupported bit depth %d\n",h.typeCode);
+    return false;
+  }
+
+  int size = (*width) * (*height) * (*channels);
+  *data = new unsigned short[size];
+  float *tempData = new float[size];
+
+  fread(tempData, size*sizeof(float), 1, file);
+
+  // convert to short & flip y
+  for(int x=0; x<(*width); x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[((*height)-y)*(*width)+x] = tempData[y*(*width)+x];
+    }
+  }
+
+  delete[] tempData;
+
+  return true;
+}
+

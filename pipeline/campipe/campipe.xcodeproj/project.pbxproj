@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		82C8589114E1E69D00F0325B /* stagecode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82C8589014E1E69D00F0325B /* stagecode.cpp */; };
 		82D2B0F914D9C7D5005F67D3 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B0F814D9C7D5005F67D3 /* main.cpp */; };
 		82D2B0FB14D9C7D5005F67D3 /* campipe.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 82D2B0FA14D9C7D5005F67D3 /* campipe.1 */; };
 		82D2B10214D9C7EE005F67D3 /* Pipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82D2B10114D9C7EE005F67D3 /* Pipeline.cpp */; };
@@ -28,6 +29,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		82C8588D14E105BA00F0325B /* pipelineConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pipelineConfig.h; sourceTree = "<group>"; };
+		82C8588F14E1E68E00F0325B /* stagecode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stagecode.h; sourceTree = "<group>"; };
+		82C8589014E1E69D00F0325B /* stagecode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stagecode.cpp; sourceTree = "<group>"; };
 		82D2B0F414D9C7D5005F67D3 /* campipe */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = campipe; sourceTree = BUILT_PRODUCTS_DIR; };
 		82D2B0F814D9C7D5005F67D3 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		82D2B0FA14D9C7D5005F67D3 /* campipe.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = campipe.1; sourceTree = "<group>"; };
@@ -71,6 +75,7 @@
 		82D2B0F714D9C7D5005F67D3 /* campipe */ = {
 			isa = PBXGroup;
 			children = (
+				82C8588D14E105BA00F0325B /* pipelineConfig.h */,
 				82D2B10914DB3AEB005F67D3 /* util.h */,
 				82D2B10A14DB3AEB005F67D3 /* util.cpp */,
 				82D2B0F814D9C7D5005F67D3 /* main.cpp */,
@@ -81,6 +86,8 @@
 				82D2B10714DA0E36005F67D3 /* Sensor.cpp */,
 				82D2B10514D9FC21005F67D3 /* Image.h */,
 				82D2B0FA14D9C7D5005F67D3 /* campipe.1 */,
+				82C8588F14E1E68E00F0325B /* stagecode.h */,
+				82C8589014E1E69D00F0325B /* stagecode.cpp */,
 			);
 			path = campipe;
 			sourceTree = "<group>";
@@ -139,6 +146,7 @@
 				82D2B10214D9C7EE005F67D3 /* Pipeline.cpp in Sources */,
 				82D2B10814DA0E36005F67D3 /* Sensor.cpp in Sources */,
 				82D2B10B14DB3AEB005F67D3 /* util.cpp in Sources */,
+				82C8589114E1E69D00F0325B /* stagecode.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +231,7 @@
 				82D2B10014D9C7D5005F67D3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

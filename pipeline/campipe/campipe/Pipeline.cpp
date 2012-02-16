@@ -11,6 +11,21 @@
 
 
 
+
+// This struct is used to pass arguments to the runStage callback.
+struct PStageThreadArgs {
+    CQueue *inQueue;
+    CQueue *outQueue;
+    void *(*fn)(void *);
+    const char *stageID;
+    
+    // Allows simultaneous processing of multiple images
+    // (i.e. for image alignment)
+    int numFrames;
+};
+
+
+
 /*******************
  * PIPELINESTAGE
  *******************/
@@ -20,18 +35,20 @@ PipelineStage::PipelineStage(EStageType stageType, const char *stageID)
 : m_stageID(stageID) {
     
     printf("Initializing stage: %s\n", m_stageID);
-    m_fn = &fake_camera_algo; 
+    m_fn = &empty_stage;
+    m_nFrames = 1;
 }
 
 
 
 bool PipelineStage::powerOn() { 
     
-    PStage *stage = new PStage;
+    PStageThreadArgs *stage = new PStageThreadArgs;
     stage->inQueue = m_inQueue;
     stage->outQueue = m_outQueue;
     stage->fn = m_fn;
     stage->stageID = m_stageID;
+    stage->numFrames = m_nFrames;
     
     pthread_create(&m_tid, NULL, &runStage, (void *)stage);
     return true;
@@ -41,20 +58,33 @@ bool PipelineStage::powerOn() {
 void *PipelineStage::runStage (void *vstage) {
     
     // Cast to the struct of arguments
-    PStage *stage = (PStage *)vstage;
+    PStageThreadArgs *stage = (PStageThreadArgs *)vstage;
     
     while (true) {
         
-        Image *fake = (Image *)stage->inQueue->pop();
+        Image *frames[stage->numFrames];
         
-        fake->stageName = stage->stageID;
+        for (int i = 0; i < stage->numFrames; i++) {
+            
+            // Grab the appropriate number of frames off the queue
+            // and place them into an array:
+            
+            frames[i] = (Image *)stage->inQueue->pop();
+            frames[i]->stageName = stage->stageID;
+        }
+
         
-        void *imgOut = stage->fn(fake);
+        // Pass the array to the stage function:
+        Image **imgOut = (Image **)stage->fn(&frames[0]);
         
-       // usleep(10000);
+        if (imgOut) {
         
-        stage->outQueue->push(imgOut);
-        
+            // Push each of the results
+            // TODO: for now, assumes that num input == num output
+            for (int i = 0; i < stage->numFrames; i++) {
+                stage->outQueue->push(imgOut[i]);
+            }
+        }
     }
 }
 
@@ -83,9 +113,7 @@ Pipeline::Pipeline(size_t nStages, EStageType stageTypes[]) : m_nStages(nStages)
         m_stages[i]->setQueues(&m_queues[i], &m_queues[i+1]);
     }
     
-    m_sensor = new Sensor(12);
-    m_sensor->setQueue(&m_queues[0]);
-    
+    m_sensor = NULL;
 }
 
 
@@ -108,11 +136,14 @@ void Pipeline::connectSensor(Sensor *sensor) {
 
 
 bool Pipeline::powerOn() {
+    
     for (size_t i = 0; i < m_nStages; ++i) {
         m_stages[i]->powerOn();
     }
     
-    m_sensor->powerOn();
+    if (m_sensor) {
+        m_sensor->powerOn();
+    }
     
     return false;
 }
