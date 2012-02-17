@@ -1,3 +1,4 @@
+#include <iostream>
 #include "hypterm.h"
 
 void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *cons,double *pres,double *flux,int blocksize){
@@ -209,6 +210,5 @@ void *hypterm_threaded(void *threadarg){
     double *pres=calc_params->pres;
     double *cons=calc_params->cons;
     double *flux=calc_params->flux;
-
     hypterm_serial(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
 }

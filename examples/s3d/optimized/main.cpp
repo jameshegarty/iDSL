@@ -64,12 +64,15 @@ int main(int argc,char **argv){
     int nspec=14;
     double dx[3]={1e-3,1e-3,1e-3};
     
-    int n[3]={64,64,64};
+    int n[3]={512,512,512};
     int ng[3]={4,4,4};
 
     double *pres=new double[(n[0]+2*ng[0])*(n[1]+2*ng[1])*(n[2]+2*ng[2])];
     double *cons=new double[nspec*(n[0]+2*ng[0])*(n[1]+2*ng[1])*(n[2]+2*ng[2])];
     double *flux=new double[nspec*n[0]*n[1]*n[2]];
+    for(int i=0;i<nspec*n[0]*n[1]*n[2];i++){
+        flux[i]=0.0;
+    }
 
     int goffset=n[0]*n[1]*n[2];
 
