@@ -1,175 +1,194 @@
 #include "hypterm.h"
 
-void hypterm_serial(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){
-    for(int i=ng[0];i<n[0]+ng[0];i++){
-        for(int j=ng[1];j<n[1]+ng[1];j++){
-            for(int k=ng[2];k<n[2]+ng[2];k++){
-                double unp1=cons[i+1][j][k][I_MX]/cons[i+1][j][k][I_RHO];
-                double unp2=cons[i+2][j][k][I_MX]/cons[i+2][j][k][I_RHO];
-                double unp3=cons[i+3][j][k][I_MX]/cons[i+3][j][k][I_RHO];
-                double unp4=cons[i+4][j][k][I_MX]/cons[i+4][j][k][I_RHO];
+void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *cons,double *pres,double *flux,int blocksize){
+    for(int ii=ns[0]+ng[0];ii<ne[0]+ng[0];ii+=blocksize){
+        for(int jj=ns[1]+ng[1];jj<ne[1]+ng[1];jj+=blocksize){
+            for(int kk=ns[2]+ng[2];kk<ne[2]+ng[2];kk+=blocksize){
+                for(int i=ii;i<std::min(ii+blocksize,ne[0]+ng[0]);i++){
+                    for(int j=jj;j<std::min(jj+blocksize,ne[1]+ng[1]);j++){
+                        for(int k=kk;k<std::min(kk+blocksize,ne[2]+ng[2]);k++){
+                            int offset0=(n[0]+2*ng[0])*(n[1]+2*ng[1])*(n[2]+2*ng[2]);
+                            int offset1=(n[1]+2*ng[1])*(n[2]+2*ng[2]);
+                            int offset2=(n[2]+2*ng[2]);
 
-                double unm1=cons[i-1][j][k][I_MX]/cons[i-1][j][k][I_RHO];
-                double unm2=cons[i-2][j][k][I_MX]/cons[i-2][j][k][I_RHO];
-                double unm3=cons[i-3][j][k][I_MX]/cons[i-3][j][k][I_RHO];
-                double unm4=cons[i-4][j][k][I_MX]/cons[i-4][j][k][I_RHO];
+                            int goffset=n[0]*n[1]*n[2];
+                            int gijk=(i-ng[0])*n[1]*n[2]+(j-ng[1])*n[2]+(k-ng[2]);
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                (ALPHA*(cons[i+1][j][k][I_MX]-cons[i-1][j][k][I_MX])
-                +BETA *(cons[i+2][j][k][I_MX]-cons[i-2][j][k][I_MX])
-                +GAMMA*(cons[i+3][j][k][I_MX]-cons[i-3][j][k][I_MX])
-                +DELTA*(cons[i+4][j][k][I_MX]-cons[i-4][j][k][I_MX]))/dx[0];
+                            int ip1jk=(i+1)*offset1+j*offset2+k;
+                            int ip2jk=(i+2)*offset1+j*offset2+k;
+                            int ip3jk=(i+3)*offset1+j*offset2+k;
+                            int ip4jk=(i+4)*offset1+j*offset2+k;
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                (ALPHA*(cons[i+1][j][k][I_MX]*unp1-cons[i-1][j][k][I_MX]*unm1
-                      +(pres[i+1][j][k]-pres[i-1][j][k]))
-                +BETA *(cons[i+2][j][k][I_MX]*unp2-cons[i-2][j][k][I_MX]*unm2
-                      +(pres[i+2][j][k]-pres[i-2][j][k]))
-                +GAMMA*(cons[i+3][j][k][I_MX]*unp3-cons[i-3][j][k][I_MX]*unm3
-                      +(pres[i+3][j][k]-pres[i-3][j][k]))
-                +DELTA*(cons[i+4][j][k][I_MX]*unp4-cons[i-4][j][k][I_MX]*unm4
-                      +(pres[i+4][j][k]-pres[i-4][j][k])))/dx[0];
+                            int im1jk=(i-1)*offset1+j*offset2+k;
+                            int im2jk=(i-2)*offset1+j*offset2+k;
+                            int im3jk=(i-3)*offset1+j*offset2+k;
+                            int im4jk=(i-4)*offset1+j*offset2+k;
+                            
+                            double unp1=cons[I_MX*offset0+ip1jk]/cons[I_RHO*offset0+ip1jk];
+                            double unp2=cons[I_MX*offset0+ip2jk]/cons[I_RHO*offset0+ip2jk];
+                            double unp3=cons[I_MX*offset0+ip3jk]/cons[I_RHO*offset0+ip3jk];
+                            double unp4=cons[I_MX*offset0+ip4jk]/cons[I_RHO*offset0+ip4jk];
+                                                                                          
+                            double unm1=cons[I_MX*offset0+im1jk]/cons[I_RHO*offset0+im1jk];
+                            double unm2=cons[I_MX*offset0+im2jk]/cons[I_RHO*offset0+im2jk];
+                            double unm3=cons[I_MX*offset0+im3jk]/cons[I_RHO*offset0+im3jk];
+                            double unm4=cons[I_MX*offset0+im4jk]/cons[I_RHO*offset0+im4jk];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                (ALPHA*(cons[i+1][j][k][I_MY]*unp1-cons[i-1][j][k][I_MY]*unm1)
-                +BETA *(cons[i+2][j][k][I_MY]*unp2-cons[i-2][j][k][I_MY]*unm2)
-                +GAMMA*(cons[i+3][j][k][I_MY]*unp3-cons[i-3][j][k][I_MY]*unm3)
-                +DELTA*(cons[i+4][j][k][I_MY]*unp4-cons[i-4][j][k][I_MY]*unm4))/dx[0];
+                            flux[I_RHO*goffset+gijk]=flux[I_RHO*goffset+gijk]-
+                            (ALPHA*(cons[I_MX*offset0+ip1jk]-cons[I_MX*offset0+im1jk])
+                            +BETA *(cons[I_MX*offset0+ip2jk]-cons[I_MX*offset0+im2jk])
+                            +GAMMA*(cons[I_MX*offset0+ip3jk]-cons[I_MX*offset0+im3jk])
+                            +DELTA*(cons[I_MX*offset0+ip4jk]-cons[I_MX*offset0+im4jk]))/dx[0];
+                            
+                            flux[I_MX*goffset+gijk]=flux[I_MX*goffset+gijk]-
+                            (ALPHA*(cons[I_MX*offset0+ip1jk]*unp1-cons[I_MX*offset0+im1jk]*unm1+(pres[ip1jk]-pres[im1jk]))
+                            +BETA *(cons[I_MX*offset0+ip2jk]*unp2-cons[I_MX*offset0+im2jk]*unm2+(pres[ip2jk]-pres[im2jk]))
+                            +GAMMA*(cons[I_MX*offset0+ip3jk]*unp3-cons[I_MX*offset0+im3jk]*unm3+(pres[ip3jk]-pres[im3jk]))
+                            +DELTA*(cons[I_MX*offset0+ip4jk]*unp4-cons[I_MX*offset0+im4jk]*unm4+(pres[ip4jk]-pres[im4jk])))/dx[0];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                (ALPHA*(cons[i+1][j][k][I_MZ]*unp1-cons[i-1][j][k][I_MZ]*unm1)
-                +BETA *(cons[i+2][j][k][I_MZ]*unp2-cons[i-2][j][k][I_MZ]*unm2)
-                +GAMMA*(cons[i+3][j][k][I_MZ]*unp3-cons[i-3][j][k][I_MZ]*unm3)
-                +DELTA*(cons[i+4][j][k][I_MZ]*unp4-cons[i-4][j][k][I_MZ]*unm4))/dx[0];
+                            flux[I_MY*goffset+gijk]=flux[I_MY*goffset+gijk]-
+                            (ALPHA*(cons[I_MY*offset0+ip1jk]*unp1-cons[I_MY*offset0+im1jk]*unm1)
+                            +BETA *(cons[I_MY*offset0+ip2jk]*unp2-cons[I_MY*offset0+im2jk]*unm2)
+                            +GAMMA*(cons[I_MY*offset0+ip3jk]*unp3-cons[I_MY*offset0+im3jk]*unm3)
+                            +DELTA*(cons[I_MY*offset0+ip4jk]*unp4-cons[I_MY*offset0+im4jk]*unm4))/dx[0];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]-
-                (ALPHA*(cons[i+1][j][k][I_ENE]*unp1-cons[i-1][j][k][I_ENE]*unm1
-                   +(pres[i+1][j][k]*unp1-pres[i-1][j][k]*unm1))
-                +BETA *(cons[i+2][j][k][I_ENE]*unp2-cons[i-2][j][k][I_ENE]*unm2
-                   +(pres[i+2][j][k]*unp2-pres[i-2][j][k]*unm2))
-                +GAMMA*(cons[i+3][j][k][I_ENE]*unp3-cons[i-3][j][k][I_ENE]*unm3
-                   +(pres[i+3][j][k]*unp3-pres[i-3][j][k]*unm3))
-                +DELTA*(cons[i+4][j][k][I_ENE]*unp4-cons[i-4][j][k][I_ENE]*unm4
-                   +(pres[i+4][j][k]*unp4-pres[i-4][j][k]*unm4)))/dx[0];
-                
-                for(int nsp=0;nsp<nspec;nsp++){
-                    flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                    (ALPHA*(cons[i+1][j][k][I_SP+nsp]*unp1-cons[i-1][j][k][I_SP+nsp]*unm1)
-                    +BETA *(cons[i+2][j][k][I_SP+nsp]*unp2-cons[i-2][j][k][I_SP+nsp]*unm2)
-                    +GAMMA*(cons[i+3][j][k][I_SP+nsp]*unp3-cons[i-3][j][k][I_SP+nsp]*unm3)
-                    +DELTA*(cons[i+4][j][k][I_SP+nsp]*unp4-cons[i-4][j][k][I_SP+nsp]*unm4))/dx[0];
-                }
+                            flux[I_MZ*goffset+gijk]=flux[I_MZ*goffset+gijk]-
+                            (ALPHA*(cons[I_MZ*offset0+ip1jk]*unp1-cons[I_MZ*offset0+im1jk]*unm1)
+                            +BETA *(cons[I_MZ*offset0+ip2jk]*unp2-cons[I_MZ*offset0+im2jk]*unm2)
+                            +GAMMA*(cons[I_MZ*offset0+ip3jk]*unp3-cons[I_MZ*offset0+im3jk]*unm3)
+                            +DELTA*(cons[I_MZ*offset0+ip4jk]*unp4-cons[I_MZ*offset0+im4jk]*unm4))/dx[0];
 
-                unp1 = cons[i][j+1][k][I_MY]/cons[i][j+1][k][I_RHO];
-                unp2 = cons[i][j+2][k][I_MY]/cons[i][j+2][k][I_RHO];
-                unp3 = cons[i][j+3][k][I_MY]/cons[i][j+3][k][I_RHO];
-                unp4 = cons[i][j+4][k][I_MY]/cons[i][j+4][k][I_RHO];
-                
-                unm1 = cons[i][j-1][k][I_MY]/cons[i][j-1][k][I_RHO];
-                unm2 = cons[i][j-2][k][I_MY]/cons[i][j-2][k][I_RHO];
-                unm3 = cons[i][j-3][k][I_MY]/cons[i][j-3][k][I_RHO];
-                unm4 = cons[i][j-4][k][I_MY]/cons[i][j-4][k][I_RHO];
+                            flux[I_ENE*goffset+gijk]=flux[I_ENE*goffset+gijk]-
+                            (ALPHA*(cons[I_ENE*offset0+ip1jk]*unp1-cons[I_ENE*offset0+im1jk]*unm1+(pres[ip1jk]*unp1-pres[im1jk]*unm1))
+                            +BETA *(cons[I_ENE*offset0+ip2jk]*unp2-cons[I_ENE*offset0+im2jk]*unm2+(pres[ip2jk]*unp2-pres[im2jk]*unm2))
+                            +GAMMA*(cons[I_ENE*offset0+ip3jk]*unp3-cons[I_ENE*offset0+im3jk]*unm3+(pres[ip3jk]*unp3-pres[im3jk]*unm3))
+                            +DELTA*(cons[I_ENE*offset0+ip4jk]*unp4-cons[I_ENE*offset0+im4jk]*unm4+(pres[ip4jk]*unp4-pres[im4jk]*unm4)))/dx[0];
+                            
+                            for(int nsp=I_SP;nsp<nspec;nsp++){
+                                flux[nsp*goffset+gijk]=flux[nsp*goffset+gijk]-
+                                (ALPHA*(cons[nsp*offset0+ip1jk]*unp1-cons[nsp*offset0+im1jk]*unm1)
+                                +BETA *(cons[nsp*offset0+ip2jk]*unp2-cons[nsp*offset0+im2jk]*unm2)
+                                +GAMMA*(cons[nsp*offset0+ip3jk]*unp3-cons[nsp*offset0+im3jk]*unm3)
+                                +DELTA*(cons[nsp*offset0+ip4jk]*unp4-cons[nsp*offset0+im4jk]*unm4))/dx[0];
+                            }
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                   (ALPHA*(cons[i][j+1][k][I_MY]-cons[i][j-1][k][I_MY])
-                   +BETA *(cons[i][j+2][k][I_MY]-cons[i][j-2][k][I_MY])
-                   +GAMMA*(cons[i][j+3][k][I_MY]-cons[i][j-3][k][I_MY])
-                   +DELTA*(cons[i][j+4][k][I_MY]-cons[i][j-4][k][I_MY]))/dx[1];
+                            int ijp1k=i*offset1+(j+1)*offset2+k;
+                            int ijp2k=i*offset1+(j+2)*offset2+k;
+                            int ijp3k=i*offset1+(j+3)*offset2+k;
+                            int ijp4k=i*offset1+(j+4)*offset2+k;
+                                                     
+                            int ijm1k=i*offset1+(j-1)*offset2+k;
+                            int ijm2k=i*offset1+(j-2)*offset2+k;
+                            int ijm3k=i*offset1+(j-3)*offset2+k;
+                            int ijm4k=i*offset1+(j-4)*offset2+k;
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                   (ALPHA*(cons[i][j+1][k][I_MX]*unp1-cons[i][j-1][k][I_MX]*unm1)
-                   +BETA *(cons[i][j+2][k][I_MX]*unp2-cons[i][j-2][k][I_MX]*unm2)
-                   +GAMMA*(cons[i][j+3][k][I_MX]*unp3-cons[i][j-3][k][I_MX]*unm3)
-                   +DELTA*(cons[i][j+4][k][I_MX]*unp4-cons[i][j-4][k][I_MX]*unm4))/dx[1];
+                            unp1 = cons[I_MY*offset0+ijp1k]/cons[I_RHO*offset0+ijp1k];
+                            unp2 = cons[I_MY*offset0+ijp2k]/cons[I_RHO*offset0+ijp2k];
+                            unp3 = cons[I_MY*offset0+ijp3k]/cons[I_RHO*offset0+ijp3k];
+                            unp4 = cons[I_MY*offset0+ijp4k]/cons[I_RHO*offset0+ijp4k];
+                                                                                 
+                            unm1 = cons[I_MY*offset0+ijm1k]/cons[I_RHO*offset0+ijm1k];
+                            unm2 = cons[I_MY*offset0+ijm2k]/cons[I_RHO*offset0+ijm2k];
+                            unm3 = cons[I_MY*offset0+ijm3k]/cons[I_RHO*offset0+ijm3k];
+                            unm4 = cons[I_MY*offset0+ijm4k]/cons[I_RHO*offset0+ijm4k];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                   (ALPHA*(cons[i][j+1][k][I_MY]*unp1-cons[i][j-1][k][I_MY]*unm1
-                      +(pres[i][j+1][k]-pres[i][j-1][k]))
-                   +BETA *(cons[i][j+2][k][I_MY]*unp2-cons[i][j-2][k][I_MY]*unm2
-                      +(pres[i][j+2][k]-pres[i][j-2][k]))
-                   +GAMMA*(cons[i][j+3][k][I_MY]*unp3-cons[i][j-3][k][I_MY]*unm3
-                      +(pres[i][j+3][k]-pres[i][j-3][k]))
-                   +DELTA*(cons[i][j+4][k][I_MY]*unp4-cons[i][j-4][k][I_MY]*unm4
-                      +(pres[i][j+4][k]-pres[i][j-4][k])))/dx[1];
+                            flux[I_RHO*goffset+gijk]=flux[I_RHO*goffset+gijk]-
+                               (ALPHA*(cons[I_MY*offset0+ijp1k]-cons[I_MY*offset0+ijm1k])
+                               +BETA *(cons[I_MY*offset0+ijp2k]-cons[I_MY*offset0+ijm2k])
+                               +GAMMA*(cons[I_MY*offset0+ijp3k]-cons[I_MY*offset0+ijm3k])
+                               +DELTA*(cons[I_MY*offset0+ijp4k]-cons[I_MY*offset0+ijm4k]))/dx[1];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                   (ALPHA*(cons[i][j+1][k][I_MZ]*unp1-cons[i][j-1][k][I_MZ]*unm1)
-                   +BETA *(cons[i][j+2][k][I_MZ]*unp2-cons[i][j-2][k][I_MZ]*unm2)
-                   +GAMMA*(cons[i][j+3][k][I_MZ]*unp3-cons[i][j-3][k][I_MZ]*unm3)
-                   +DELTA*(cons[i][j+4][k][I_MZ]*unp4-cons[i][j-4][k][I_MZ]*unm4))/dx[1];
+                            flux[I_MX*goffset+gijk]=flux[I_MX*goffset+gijk]-
+                               (ALPHA*(cons[I_MX*offset0+ijp1k]*unp1-cons[I_MX*offset0+ijm1k]*unm1)
+                               +BETA *(cons[I_MX*offset0+ijp2k]*unp2-cons[I_MX*offset0+ijm2k]*unm2)
+                               +GAMMA*(cons[I_MX*offset0+ijp3k]*unp3-cons[I_MX*offset0+ijm3k]*unm3)
+                               +DELTA*(cons[I_MX*offset0+ijp4k]*unp4-cons[I_MX*offset0+ijm4k]*unm4))/dx[1];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]-
-                   (ALPHA*(cons[i][j+1][k][I_ENE]*unp1-cons[i][j-1][k][I_ENE]*unm1
-                      +(pres[i][j+1][k]*unp1-pres[i][j-1][k]*unm1))
-                   +BETA *(cons[i][j+2][k][I_ENE]*unp2-cons[i][j-2][k][I_ENE]*unm2
-                      +(pres[i][j+2][k]*unp2-pres[i][j-2][k]*unm2))
-                   +GAMMA*(cons[i][j+3][k][I_ENE]*unp3-cons[i][j-3][k][I_ENE]*unm3
-                      +(pres[i][j+3][k]*unp3-pres[i][j-3][k]*unm3))
-                   +DELTA*(cons[i][j+4][k][I_ENE]*unp4-cons[i][j-4][k][I_ENE]*unm4
-                      +(pres[i][j+4][k]*unp4-pres[i][j-4][k]*unm4)))/dx[1];
+                            flux[I_MY*goffset+gijk]=flux[I_MY*goffset+gijk]-
+                               (ALPHA*(cons[I_MY*offset0+ijp1k]*unp1-cons[I_MY*offset0+ijm1k]*unm1+(pres[ijp1k]-pres[ijm1k]))
+                               +BETA *(cons[I_MY*offset0+ijp2k]*unp2-cons[I_MY*offset0+ijm2k]*unm2+(pres[ijp2k]-pres[ijm2k]))
+                               +GAMMA*(cons[I_MY*offset0+ijp3k]*unp3-cons[I_MY*offset0+ijm3k]*unm3+(pres[ijp3k]-pres[ijm3k]))
+                               +DELTA*(cons[I_MY*offset0+ijp4k]*unp4-cons[I_MY*offset0+ijm4k]*unm4+(pres[ijp4k]-pres[ijm4k])))/dx[1];
 
-                for(int nsp=0;nsp<nspec;nsp++){
-                   flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                      (ALPHA*(cons[i][j+1][k][I_SP+nsp]*unp1-cons[i][j-1][k][I_SP+nsp]*unm1)
-                      +BETA *(cons[i][j+2][k][I_SP+nsp]*unp2-cons[i][j-2][k][I_SP+nsp]*unm2)
-                      +GAMMA*(cons[i][j+3][k][I_SP+nsp]*unp3-cons[i][j-3][k][I_SP+nsp]*unm3)
-                      +DELTA*(cons[i][j+4][k][I_SP+nsp]*unp4-cons[i][j-4][k][I_SP+nsp]*unm4))/dx[1];
-                }
+                            flux[I_MZ*goffset+gijk]=flux[I_MZ*goffset+gijk]-
+                               (ALPHA*(cons[I_MZ*offset0+ijp1k]*unp1-cons[I_MZ*offset0+ijm1k]*unm1)
+                               +BETA *(cons[I_MZ*offset0+ijp2k]*unp2-cons[I_MZ*offset0+ijm2k]*unm2)
+                               +GAMMA*(cons[I_MZ*offset0+ijp3k]*unp3-cons[I_MZ*offset0+ijm3k]*unm3)
+                               +DELTA*(cons[I_MZ*offset0+ijp4k]*unp4-cons[I_MZ*offset0+ijm4k]*unm4))/dx[1];
 
-                unp1 = cons[i][j][k+1][I_MZ]/cons[i][j][k+1][I_RHO];
-                unp2 = cons[i][j][k+2][I_MZ]/cons[i][j][k+2][I_RHO];
-                unp3 = cons[i][j][k+3][I_MZ]/cons[i][j][k+3][I_RHO];
-                unp4 = cons[i][j][k+4][I_MZ]/cons[i][j][k+4][I_RHO];
+                            flux[I_ENE*goffset+gijk]=flux[I_ENE*goffset+gijk]-
+                               (ALPHA*(cons[I_ENE*offset0+ijp1k]*unp1-cons[I_ENE*offset0+ijm1k]*unm1+(pres[ijp1k]*unp1-pres[ijm1k]*unm1))
+                               +BETA *(cons[I_ENE*offset0+ijp2k]*unp2-cons[I_ENE*offset0+ijm2k]*unm2+(pres[ijp2k]*unp2-pres[ijm2k]*unm2))
+                               +GAMMA*(cons[I_ENE*offset0+ijp3k]*unp3-cons[I_ENE*offset0+ijm3k]*unm3+(pres[ijp3k]*unp3-pres[ijm3k]*unm3))
+                               +DELTA*(cons[I_ENE*offset0+ijp4k]*unp4-cons[I_ENE*offset0+ijm4k]*unm4+(pres[ijp4k]*unp4-pres[ijm4k]*unm4)))/dx[1];
 
-                unm1 = cons[i][j][k-1][I_MZ]/cons[i][j][k-1][I_RHO];
-                unm2 = cons[i][j][k-2][I_MZ]/cons[i][j][k-2][I_RHO];
-                unm3 = cons[i][j][k-3][I_MZ]/cons[i][j][k-3][I_RHO];
-                unm4 = cons[i][j][k-4][I_MZ]/cons[i][j][k-4][I_RHO];
+                            for(int nsp=I_SP;nsp<nspec;nsp++){
+                               flux[nsp*goffset+gijk]=flux[nsp*goffset+gijk]-
+                                  (ALPHA*(cons[nsp*offset0+ijp1k]*unp1-cons[nsp*offset0+ijm1k]*unm1)
+                                  +BETA *(cons[nsp*offset0+ijp2k]*unp2-cons[nsp*offset0+ijm2k]*unm2)
+                                  +GAMMA*(cons[nsp*offset0+ijp3k]*unp3-cons[nsp*offset0+ijm3k]*unm3)
+                                  +DELTA*(cons[nsp*offset0+ijp4k]*unp4-cons[nsp*offset0+ijm4k]*unm4))/dx[1];
+                            }
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                   (ALPHA*(cons[i][j][k+1][I_MZ]-cons[i][j][k-1][I_MZ])
-                   +BETA *(cons[i][j][k+2][I_MZ]-cons[i][j][k-2][I_MZ])
-                   +GAMMA*(cons[i][j][k+3][I_MZ]-cons[i][j][k-3][I_MZ])
-                   +DELTA*(cons[i][j][k+4][I_MZ]-cons[i][j][k-4][I_MZ]))/dx[2];
+                            int ijkp1=i*offset1+j*offset2+(k+1);
+                            int ijkp2=i*offset1+j*offset2+(k+2);
+                            int ijkp3=i*offset1+j*offset2+(k+3);
+                            int ijkp4=i*offset1+j*offset2+(k+4);
+                                                               
+                            int ijkm1=i*offset1+j*offset2+(k-1);
+                            int ijkm2=i*offset1+j*offset2+(k-2);
+                            int ijkm3=i*offset1+j*offset2+(k-3);
+                            int ijkm4=i*offset1+j*offset2+(k-4);
+                            
+                            unp1 = cons[I_MZ*offset0+ijkp1]/cons[I_RHO*offset0+ijkp1];
+                            unp2 = cons[I_MZ*offset0+ijkp2]/cons[I_RHO*offset0+ijkp2];
+                            unp3 = cons[I_MZ*offset0+ijkp3]/cons[I_RHO*offset0+ijkp3];
+                            unp4 = cons[I_MZ*offset0+ijkp4]/cons[I_RHO*offset0+ijkp4];
+                                                                                 
+                            unm1 = cons[I_MZ*offset0+ijkm1]/cons[I_RHO*offset0+ijkm1];
+                            unm2 = cons[I_MZ*offset0+ijkm2]/cons[I_RHO*offset0+ijkm2];
+                            unm3 = cons[I_MZ*offset0+ijkm3]/cons[I_RHO*offset0+ijkm3];
+                            unm4 = cons[I_MZ*offset0+ijkm4]/cons[I_RHO*offset0+ijkm4];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                   (ALPHA*(cons[i][j][k+1][I_MX]*unp1-cons[i][j][k-1][I_MX]*unm1)
-                   +BETA *(cons[i][j][k+2][I_MX]*unp2-cons[i][j][k-2][I_MX]*unm2)
-                   +GAMMA*(cons[i][j][k+3][I_MX]*unp3-cons[i][j][k-3][I_MX]*unm3)
-                   +DELTA*(cons[i][j][k+4][I_MX]*unp4-cons[i][j][k-4][I_MX]*unm4))/dx[2];
+                            flux[I_RHO*goffset+gijk]=flux[I_RHO*goffset+gijk]-
+                               (ALPHA*(cons[I_MZ*offset0+ijkp1]-cons[I_MZ*offset0+ijkm1])
+                               +BETA *(cons[I_MZ*offset0+ijkp2]-cons[I_MZ*offset0+ijkm2])
+                               +GAMMA*(cons[I_MZ*offset0+ijkp3]-cons[I_MZ*offset0+ijkm3])
+                               +DELTA*(cons[I_MZ*offset0+ijkp4]-cons[I_MZ*offset0+ijkm4]))/dx[2];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                   (ALPHA*(cons[i][j][k+1][I_MY]*unp1-cons[i][j][k-1][I_MY]*unm1)
-                   +BETA *(cons[i][j][k+2][I_MY]*unp2-cons[i][j][k-2][I_MY]*unm2)
-                   +GAMMA*(cons[i][j][k+3][I_MY]*unp3-cons[i][j][k-3][I_MY]*unm3)
-                   +DELTA*(cons[i][j][k+4][I_MY]*unp4-cons[i][j][k-4][I_MY]*unm4))/dx[2];
+                            flux[I_MX*goffset+gijk]=flux[I_MX*goffset+gijk]-
+                               (ALPHA*(cons[I_MX*offset0+ijkp1]*unp1-cons[I_MX*offset0+ijkm1]*unm1)
+                               +BETA *(cons[I_MX*offset0+ijkp2]*unp2-cons[I_MX*offset0+ijkm2]*unm2)
+                               +GAMMA*(cons[I_MX*offset0+ijkp3]*unp3-cons[I_MX*offset0+ijkm3]*unm3)
+                               +DELTA*(cons[I_MX*offset0+ijkp4]*unp4-cons[I_MX*offset0+ijkm4]*unm4))/dx[2];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                   (ALPHA*(cons[i][j][k+1][I_MZ]*unp1-cons[i][j][k-1][I_MZ]*unm1
-                      +(pres[i][j][k+1]-pres[i][j][k-1]))
-                   +BETA *(cons[i][j][k+2][I_MZ]*unp2-cons[i][j][k-2][I_MZ]*unm2
-                      +(pres[i][j][k+2]-pres[i][j][k-2]))
-                   +GAMMA*(cons[i][j][k+3][I_MZ]*unp3-cons[i][j][k-3][I_MZ]*unm3
-                      +(pres[i][j][k+3]-pres[i][j][k-3]))
-                   +DELTA*(cons[i][j][k+4][I_MZ]*unp4-cons[i][j][k-4][I_MZ]*unm4
-                      +(pres[i][j][k+4]-pres[i][j][k-4])))/dx[2];
+                            flux[I_MY*goffset+gijk]=flux[I_MY*goffset+gijk]-
+                               (ALPHA*(cons[I_MY*offset0+ijkp1]*unp1-cons[I_MY*offset0+ijkm1]*unm1)
+                               +BETA *(cons[I_MY*offset0+ijkp2]*unp2-cons[I_MY*offset0+ijkm2]*unm2)
+                               +GAMMA*(cons[I_MY*offset0+ijkp3]*unp3-cons[I_MY*offset0+ijkm3]*unm3)
+                               +DELTA*(cons[I_MY*offset0+ijkp4]*unp4-cons[I_MY*offset0+ijkm4]*unm4))/dx[2];
 
-                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE] -
-                   (ALPHA*(cons[i][j][k+1][I_ENE]*unp1-cons[i][j][k-1][I_ENE]*unm1
-                      +(pres[i][j][k+1]*unp1-pres[i][j][k-1]*unm1))
-                   +BETA *(cons[i][j][k+2][I_ENE]*unp2-cons[i][j][k-2][I_ENE]*unm2
-                      +(pres[i][j][k+2]*unp2-pres[i][j][k-2]*unm2))
-                   +GAMMA*(cons[i][j][k+3][I_ENE]*unp3-cons[i][j][k-3][I_ENE]*unm3
-                      +(pres[i][j][k+3]*unp3-pres[i][j][k-3]*unm3))
-                   +DELTA*(cons[i][j][k+4][I_ENE]*unp4-cons[i][j][k-4][I_ENE]*unm4
-                      +(pres[i][j][k+4]*unp4-pres[i][j][k-4]*unm4)))/dx[2];
+                            flux[I_MZ*goffset+gijk]=flux[I_MZ*goffset+gijk]-
+                               (ALPHA*(cons[I_MZ*offset0+ijkp1]*unp1-cons[I_MZ*offset0+ijkm1]*unm1+(pres[ijkp1]-pres[ijkm1]))
+                               +BETA *(cons[I_MZ*offset0+ijkp2]*unp2-cons[I_MZ*offset0+ijkm2]*unm2+(pres[ijkp2]-pres[ijkm2]))
+                               +GAMMA*(cons[I_MZ*offset0+ijkp3]*unp3-cons[I_MZ*offset0+ijkm3]*unm3+(pres[ijkp3]-pres[ijkm3]))
+                               +DELTA*(cons[I_MZ*offset0+ijkp4]*unp4-cons[I_MZ*offset0+ijkm4]*unm4+(pres[ijkp4]-pres[ijkm4])))/dx[2];
 
-                for(int nsp=0;nsp<nspec;nsp++){
-                   flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                      (ALPHA*(cons[i][j][k+1][I_SP+nsp]*unp1-cons[i][j][k-1][I_SP+nsp]*unm1)
-                      +BETA *(cons[i][j][k+2][I_SP+nsp]*unp2-cons[i][j][k-2][I_SP+nsp]*unm2)
-                      +GAMMA*(cons[i][j][k+3][I_SP+nsp]*unp3-cons[i][j][k-3][I_SP+nsp]*unm3)
-                      +DELTA*(cons[i][j][k+4][I_SP+nsp]*unp4-cons[i][j][k-4][I_SP+nsp]*unm4))/dx[2];
+                            flux[I_ENE*goffset+gijk]=flux[I_ENE*goffset+gijk]-
+                               (ALPHA*(cons[I_ENE*offset0+ijkp1]*unp1-cons[I_ENE*offset0+ijkm1]*unm1+(pres[ijkp1]*unp1-pres[ijkm1]*unm1))
+                               +BETA *(cons[I_ENE*offset0+ijkp2]*unp2-cons[I_ENE*offset0+ijkm2]*unm2+(pres[ijkp2]*unp2-pres[ijkm2]*unm2))
+                               +GAMMA*(cons[I_ENE*offset0+ijkp3]*unp3-cons[I_ENE*offset0+ijkm3]*unm3+(pres[ijkp3]*unp3-pres[ijkm3]*unm3))
+                               +DELTA*(cons[I_ENE*offset0+ijkp4]*unp4-cons[I_ENE*offset0+ijkm4]*unm4+(pres[ijkp4]*unp4-pres[ijkm4]*unm4)))/dx[2];
+
+                            for(int nsp=I_SP;nsp<nspec;nsp++){
+                               flux[nsp*goffset+gijk]=flux[nsp*goffset+gijk]-
+                                  (ALPHA*(cons[nsp*offset0+ijkp1]*unp1-cons[nsp*offset0+ijkm1]*unm1)
+                                  +BETA *(cons[nsp*offset0+ijkp2]*unp2-cons[nsp*offset0+ijkm2]*unm2)
+                                  +GAMMA*(cons[nsp*offset0+ijkp3]*unp3-cons[nsp*offset0+ijkm3]*unm3)
+                                  +DELTA*(cons[nsp*offset0+ijkp4]*unp4-cons[nsp*offset0+ijkm4]*unm4))/dx[2];
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -179,6 +198,7 @@ void hypterm_serial(const int *n,const int *ng,const double *dx,const int nspec,
 void *hypterm_threaded(void *threadarg){
     struct thread_data *calc_params = (struct thread_data *) threadarg;
     int thread_id = calc_params->thread_id;
+    int n[3]={calc_params->n0,calc_params->n1,calc_params->n2};
     int ns[3]={calc_params->n0s,calc_params->n1s,calc_params->n2s};
     int ne[3]={calc_params->n0e,calc_params->n1e,calc_params->n2e};
     int ng[3]={calc_params->ng0,calc_params->ng1,calc_params->ng2};
@@ -186,186 +206,9 @@ void *hypterm_threaded(void *threadarg){
     int blocksize=calc_params->blocksize;
 
     int nspec=calc_params->nspec;
-    double ***pres=calc_params->pres;
-    double ****cons=calc_params->cons;
-    double ****flux=calc_params->flux;
-    for(int ii=ns[0]+ng[0];ii<ne[0]+ng[0];ii+=blocksize){
-        for(int jj=ns[1]+ng[1];jj<ne[1]+ng[1];jj+=blocksize){
-            for(int kk=ns[2]+ng[2];kk<ne[2]+ng[2];kk+=blocksize){
-                for(int i=ii;i<std::min(ii+blocksize,ne[0]+ng[0]);i++){
-                    for(int j=jj;j<std::min(jj+blocksize,ne[1]+ng[1]);j++){
-                        for(int k=kk;k<std::min(kk+blocksize,ne[2]+ng[2]);k++){
-                            double unp1=cons[i+1][j][k][I_MX]/cons[i+1][j][k][I_RHO];
-                            double unp2=cons[i+2][j][k][I_MX]/cons[i+2][j][k][I_RHO];
-                            double unp3=cons[i+3][j][k][I_MX]/cons[i+3][j][k][I_RHO];
-                            double unp4=cons[i+4][j][k][I_MX]/cons[i+4][j][k][I_RHO];
+    double *pres=calc_params->pres;
+    double *cons=calc_params->cons;
+    double *flux=calc_params->flux;
 
-                            double unm1=cons[i-1][j][k][I_MX]/cons[i-1][j][k][I_RHO];
-                            double unm2=cons[i-2][j][k][I_MX]/cons[i-2][j][k][I_RHO];
-                            double unm3=cons[i-3][j][k][I_MX]/cons[i-3][j][k][I_RHO];
-                            double unm4=cons[i-4][j][k][I_MX]/cons[i-4][j][k][I_RHO];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                            (ALPHA*(cons[i+1][j][k][I_MX]-cons[i-1][j][k][I_MX])
-                            +BETA *(cons[i+2][j][k][I_MX]-cons[i-2][j][k][I_MX])
-                            +GAMMA*(cons[i+3][j][k][I_MX]-cons[i-3][j][k][I_MX])
-                            +DELTA*(cons[i+4][j][k][I_MX]-cons[i-4][j][k][I_MX]))/dx[0];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                            (ALPHA*(cons[i+1][j][k][I_MX]*unp1-cons[i-1][j][k][I_MX]*unm1
-                                  +(pres[i+1][j][k]-pres[i-1][j][k]))
-                            +BETA *(cons[i+2][j][k][I_MX]*unp2-cons[i-2][j][k][I_MX]*unm2
-                                  +(pres[i+2][j][k]-pres[i-2][j][k]))
-                            +GAMMA*(cons[i+3][j][k][I_MX]*unp3-cons[i-3][j][k][I_MX]*unm3
-                                  +(pres[i+3][j][k]-pres[i-3][j][k]))
-                            +DELTA*(cons[i+4][j][k][I_MX]*unp4-cons[i-4][j][k][I_MX]*unm4
-                                  +(pres[i+4][j][k]-pres[i-4][j][k])))/dx[0];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                            (ALPHA*(cons[i+1][j][k][I_MY]*unp1-cons[i-1][j][k][I_MY]*unm1)
-                            +BETA *(cons[i+2][j][k][I_MY]*unp2-cons[i-2][j][k][I_MY]*unm2)
-                            +GAMMA*(cons[i+3][j][k][I_MY]*unp3-cons[i-3][j][k][I_MY]*unm3)
-                            +DELTA*(cons[i+4][j][k][I_MY]*unp4-cons[i-4][j][k][I_MY]*unm4))/dx[0];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                            (ALPHA*(cons[i+1][j][k][I_MZ]*unp1-cons[i-1][j][k][I_MZ]*unm1)
-                            +BETA *(cons[i+2][j][k][I_MZ]*unp2-cons[i-2][j][k][I_MZ]*unm2)
-                            +GAMMA*(cons[i+3][j][k][I_MZ]*unp3-cons[i-3][j][k][I_MZ]*unm3)
-                            +DELTA*(cons[i+4][j][k][I_MZ]*unp4-cons[i-4][j][k][I_MZ]*unm4))/dx[0];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]-
-                            (ALPHA*(cons[i+1][j][k][I_ENE]*unp1-cons[i-1][j][k][I_ENE]*unm1
-                               +(pres[i+1][j][k]*unp1-pres[i-1][j][k]*unm1))
-                            +BETA *(cons[i+2][j][k][I_ENE]*unp2-cons[i-2][j][k][I_ENE]*unm2
-                               +(pres[i+2][j][k]*unp2-pres[i-2][j][k]*unm2))
-                            +GAMMA*(cons[i+3][j][k][I_ENE]*unp3-cons[i-3][j][k][I_ENE]*unm3
-                               +(pres[i+3][j][k]*unp3-pres[i-3][j][k]*unm3))
-                            +DELTA*(cons[i+4][j][k][I_ENE]*unp4-cons[i-4][j][k][I_ENE]*unm4
-                               +(pres[i+4][j][k]*unp4-pres[i-4][j][k]*unm4)))/dx[0];
-                            
-                            for(int nsp=0;nsp<nspec;nsp++){
-                                flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                                (ALPHA*(cons[i+1][j][k][I_SP+nsp]*unp1-cons[i-1][j][k][I_SP+nsp]*unm1)
-                                +BETA *(cons[i+2][j][k][I_SP+nsp]*unp2-cons[i-2][j][k][I_SP+nsp]*unm2)
-                                +GAMMA*(cons[i+3][j][k][I_SP+nsp]*unp3-cons[i-3][j][k][I_SP+nsp]*unm3)
-                                +DELTA*(cons[i+4][j][k][I_SP+nsp]*unp4-cons[i-4][j][k][I_SP+nsp]*unm4))/dx[0];
-                            }
-
-                            unp1 = cons[i][j+1][k][I_MY]/cons[i][j+1][k][I_RHO];
-                            unp2 = cons[i][j+2][k][I_MY]/cons[i][j+2][k][I_RHO];
-                            unp3 = cons[i][j+3][k][I_MY]/cons[i][j+3][k][I_RHO];
-                            unp4 = cons[i][j+4][k][I_MY]/cons[i][j+4][k][I_RHO];
-                            
-                            unm1 = cons[i][j-1][k][I_MY]/cons[i][j-1][k][I_RHO];
-                            unm2 = cons[i][j-2][k][I_MY]/cons[i][j-2][k][I_RHO];
-                            unm3 = cons[i][j-3][k][I_MY]/cons[i][j-3][k][I_RHO];
-                            unm4 = cons[i][j-4][k][I_MY]/cons[i][j-4][k][I_RHO];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                               (ALPHA*(cons[i][j+1][k][I_MY]-cons[i][j-1][k][I_MY])
-                               +BETA *(cons[i][j+2][k][I_MY]-cons[i][j-2][k][I_MY])
-                               +GAMMA*(cons[i][j+3][k][I_MY]-cons[i][j-3][k][I_MY])
-                               +DELTA*(cons[i][j+4][k][I_MY]-cons[i][j-4][k][I_MY]))/dx[1];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                               (ALPHA*(cons[i][j+1][k][I_MX]*unp1-cons[i][j-1][k][I_MX]*unm1)
-                               +BETA *(cons[i][j+2][k][I_MX]*unp2-cons[i][j-2][k][I_MX]*unm2)
-                               +GAMMA*(cons[i][j+3][k][I_MX]*unp3-cons[i][j-3][k][I_MX]*unm3)
-                               +DELTA*(cons[i][j+4][k][I_MX]*unp4-cons[i][j-4][k][I_MX]*unm4))/dx[1];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                               (ALPHA*(cons[i][j+1][k][I_MY]*unp1-cons[i][j-1][k][I_MY]*unm1
-                                  +(pres[i][j+1][k]-pres[i][j-1][k]))
-                               +BETA *(cons[i][j+2][k][I_MY]*unp2-cons[i][j-2][k][I_MY]*unm2
-                                  +(pres[i][j+2][k]-pres[i][j-2][k]))
-                               +GAMMA*(cons[i][j+3][k][I_MY]*unp3-cons[i][j-3][k][I_MY]*unm3
-                                  +(pres[i][j+3][k]-pres[i][j-3][k]))
-                               +DELTA*(cons[i][j+4][k][I_MY]*unp4-cons[i][j-4][k][I_MY]*unm4
-                                  +(pres[i][j+4][k]-pres[i][j-4][k])))/dx[1];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                               (ALPHA*(cons[i][j+1][k][I_MZ]*unp1-cons[i][j-1][k][I_MZ]*unm1)
-                               +BETA *(cons[i][j+2][k][I_MZ]*unp2-cons[i][j-2][k][I_MZ]*unm2)
-                               +GAMMA*(cons[i][j+3][k][I_MZ]*unp3-cons[i][j-3][k][I_MZ]*unm3)
-                               +DELTA*(cons[i][j+4][k][I_MZ]*unp4-cons[i][j-4][k][I_MZ]*unm4))/dx[1];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]-
-                               (ALPHA*(cons[i][j+1][k][I_ENE]*unp1-cons[i][j-1][k][I_ENE]*unm1
-                                  +(pres[i][j+1][k]*unp1-pres[i][j-1][k]*unm1))
-                               +BETA *(cons[i][j+2][k][I_ENE]*unp2-cons[i][j-2][k][I_ENE]*unm2
-                                  +(pres[i][j+2][k]*unp2-pres[i][j-2][k]*unm2))
-                               +GAMMA*(cons[i][j+3][k][I_ENE]*unp3-cons[i][j-3][k][I_ENE]*unm3
-                                  +(pres[i][j+3][k]*unp3-pres[i][j-3][k]*unm3))
-                               +DELTA*(cons[i][j+4][k][I_ENE]*unp4-cons[i][j-4][k][I_ENE]*unm4
-                                  +(pres[i][j+4][k]*unp4-pres[i][j-4][k]*unm4)))/dx[1];
-
-                            for(int nsp=0;nsp<nspec;nsp++){
-                               flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                                  (ALPHA*(cons[i][j+1][k][I_SP+nsp]*unp1-cons[i][j-1][k][I_SP+nsp]*unm1)
-                                  +BETA *(cons[i][j+2][k][I_SP+nsp]*unp2-cons[i][j-2][k][I_SP+nsp]*unm2)
-                                  +GAMMA*(cons[i][j+3][k][I_SP+nsp]*unp3-cons[i][j-3][k][I_SP+nsp]*unm3)
-                                  +DELTA*(cons[i][j+4][k][I_SP+nsp]*unp4-cons[i][j-4][k][I_SP+nsp]*unm4))/dx[1];
-                            }
-                            
-                            unp1 = cons[i][j][k+1][I_MZ]/cons[i][j][k+1][I_RHO];
-                            unp2 = cons[i][j][k+2][I_MZ]/cons[i][j][k+2][I_RHO];
-                            unp3 = cons[i][j][k+3][I_MZ]/cons[i][j][k+3][I_RHO];
-                            unp4 = cons[i][j][k+4][I_MZ]/cons[i][j][k+4][I_RHO];
-
-                            unm1 = cons[i][j][k-1][I_MZ]/cons[i][j][k-1][I_RHO];
-                            unm2 = cons[i][j][k-2][I_MZ]/cons[i][j][k-2][I_RHO];
-                            unm3 = cons[i][j][k-3][I_MZ]/cons[i][j][k-3][I_RHO];
-                            unm4 = cons[i][j][k-4][I_MZ]/cons[i][j][k-4][I_RHO];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
-                               (ALPHA*(cons[i][j][k+1][I_MZ]-cons[i][j][k-1][I_MZ])
-                               +BETA *(cons[i][j][k+2][I_MZ]-cons[i][j][k-2][I_MZ])
-                               +GAMMA*(cons[i][j][k+3][I_MZ]-cons[i][j][k-3][I_MZ])
-                               +DELTA*(cons[i][j][k+4][I_MZ]-cons[i][j][k-4][I_MZ]))/dx[2];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MX]-
-                               (ALPHA*(cons[i][j][k+1][I_MX]*unp1-cons[i][j][k-1][I_MX]*unm1)
-                               +BETA *(cons[i][j][k+2][I_MX]*unp2-cons[i][j][k-2][I_MX]*unm2)
-                               +GAMMA*(cons[i][j][k+3][I_MX]*unp3-cons[i][j][k-3][I_MX]*unm3)
-                               +DELTA*(cons[i][j][k+4][I_MX]*unp4-cons[i][j][k-4][I_MX]*unm4))/dx[2];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MY]-
-                               (ALPHA*(cons[i][j][k+1][I_MY]*unp1-cons[i][j][k-1][I_MY]*unm1)
-                               +BETA *(cons[i][j][k+2][I_MY]*unp2-cons[i][j][k-2][I_MY]*unm2)
-                               +GAMMA*(cons[i][j][k+3][I_MY]*unp3-cons[i][j][k-3][I_MY]*unm3)
-                               +DELTA*(cons[i][j][k+4][I_MY]*unp4-cons[i][j][k-4][I_MY]*unm4))/dx[2];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_MZ]-
-                               (ALPHA*(cons[i][j][k+1][I_MZ]*unp1-cons[i][j][k-1][I_MZ]*unm1
-                                  +(pres[i][j][k+1]-pres[i][j][k-1]))
-                               +BETA *(cons[i][j][k+2][I_MZ]*unp2-cons[i][j][k-2][I_MZ]*unm2
-                                  +(pres[i][j][k+2]-pres[i][j][k-2]))
-                               +GAMMA*(cons[i][j][k+3][I_MZ]*unp3-cons[i][j][k-3][I_MZ]*unm3
-                                  +(pres[i][j][k+3]-pres[i][j][k-3]))
-                               +DELTA*(cons[i][j][k+4][I_MZ]*unp4-cons[i][j][k-4][I_MZ]*unm4
-                                  +(pres[i][j][k+4]-pres[i][j][k-4])))/dx[2];
-
-                            flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_ENE] -
-                               (ALPHA*(cons[i][j][k+1][I_ENE]*unp1-cons[i][j][k-1][I_ENE]*unm1
-                                  +(pres[i][j][k+1]*unp1-pres[i][j][k-1]*unm1))
-                               +BETA *(cons[i][j][k+2][I_ENE]*unp2-cons[i][j][k-2][I_ENE]*unm2
-                                  +(pres[i][j][k+2]*unp2-pres[i][j][k-2]*unm2))
-                               +GAMMA*(cons[i][j][k+3][I_ENE]*unp3-cons[i][j][k-3][I_ENE]*unm3
-                                  +(pres[i][j][k+3]*unp3-pres[i][j][k-3]*unm3))
-                               +DELTA*(cons[i][j][k+4][I_ENE]*unp4-cons[i][j][k-4][I_ENE]*unm4
-                                  +(pres[i][j][k+4]*unp4-pres[i][j][k-4]*unm4)))/dx[2];
-
-                            for(int nsp=0;nsp<nspec;nsp++){
-                               flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_SP+nsp]-
-                                  (ALPHA*(cons[i][j][k+1][I_SP+nsp]*unp1-cons[i][j][k-1][I_SP+nsp]*unm1)
-                                  +BETA *(cons[i][j][k+2][I_SP+nsp]*unp2-cons[i][j][k-2][I_SP+nsp]*unm2)
-                                  +GAMMA*(cons[i][j][k+3][I_SP+nsp]*unp3-cons[i][j][k-3][I_SP+nsp]*unm3)
-                                  +DELTA*(cons[i][j][k+4][I_SP+nsp]*unp4-cons[i][j][k-4][I_SP+nsp]*unm4))/dx[2];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    hypterm_serial(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
 }

@@ -7,6 +7,9 @@
 
 struct thread_data{
     int thread_id;
+    int n0;
+    int n1;
+    int n2;
     int n0s;
     int n1s;
     int n2s;
@@ -20,13 +23,13 @@ struct thread_data{
     double dx1;
     double dx2;
     int nspec;
-    double ***pres;
-    double ****cons;
-    double ****flux;
+    double *pres;
+    double *cons;
+    double *flux;
     int blocksize;
 };
 
-void hypterm_serial(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux);
+void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *cons,double *pres,double *flux,int blocksize);
 void *hypterm_threaded(void *threadarg);
 
 #endif

@@ -218,6 +218,7 @@ void hypterm(const int *n,const int *ng,const double *dx,const int nspec,double 
                       +GAMMA*(cons[i][j][k+3][I_SP+nsp]*unp3-cons[i][j][k-3][I_SP+nsp]*unm3)
                       +DELTA*(cons[i][j][k+4][I_SP+nsp]*unp4-cons[i][j][k-4][I_SP+nsp]*unm4))/dx[2];
                 }
+                std::cout << flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO] << std::endl;
             }
         }
     }
@@ -228,7 +229,7 @@ int main(int argc, const char *argv[]){
     const int nspec=9;
     const double dx[3]={1e-3,1e-3,1e-3};
     
-    const int n[3]={64,64,64};
+    const int n[3]={4,4,4};
     const int ng[3]={4,4,4};
 
     double ***pres=new double**[n[0]+2*ng[0]];
