@@ -8,6 +8,7 @@
 
 #include "constants.h"
 #include "hypterm.h"
+#include "hypterm_ispc.h"
 
 void init(int *n,int *ng,double *dx,int nspec,double *cons,double *pres){
     double scale[3]={0.02,0.02,0.02};
@@ -64,7 +65,7 @@ int main(int argc,char **argv){
     int nspec=14;
     double dx[3]={1e-3,1e-3,1e-3};
     
-    int n[3]={512,512,512};
+    int n[3]={128,128,128};
     int ng[3]={4,4,4};
 
     double *pres=new double[(n[0]+2*ng[0])*(n[1]+2*ng[1])*(n[2]+2*ng[2])];
@@ -78,8 +79,10 @@ int main(int argc,char **argv){
 
     timespec start_threaded;
     timespec start_serial;
+    timespec start_ispc;
     timespec end_threaded;
     timespec end_serial;
+    timespec end_ispc;
     init(n,ng,dx,nspec,cons,pres);
     clock_gettime(CLOCK_REALTIME,&start_threaded);
     pthread_t threads[numthreads];
@@ -179,6 +182,36 @@ int main(int argc,char **argv){
     
     for(int ns=0;ns<nspec;ns++){
         std::cout<<"serial: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
+    }
+
+    for(int i=0;i<nspec*n[0]*n[1]*n[2];i++){
+        flux[i]=0.0;
+    }   
+    
+    for(int i=0;i<nspec;i++){
+        fluxmag[i]=0.0;
+    }
+
+    clock_gettime(CLOCK_REALTIME,&start_ispc);
+    ispc::hypterm_ispc(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksize);
+    clock_gettime(CLOCK_REALTIME,&end_ispc);
+    timespec diff_ispc;
+    diff_ispc.tv_sec=end_ispc.tv_sec-start_ispc.tv_sec;
+    diff_ispc.tv_nsec=end_ispc.tv_nsec-start_ispc.tv_nsec;
+    std::cout << "ispc Code Runtime: " << ((double)diff_ispc.tv_sec + ((double)diff_ispc.tv_nsec/1E9)) << std::endl;
+
+    for(int ns=0;ns<nspec;ns++){
+        for(int i=0;i<n[0];i++){
+            for(int j=0;j<n[1];j++){
+                for(int k=0;k<n[2];k++){
+                    fluxmag[ns]=fluxmag[ns]+flux[ns*goffset+i*n[1]*n[2]+j*n[2]+k]*flux[ns*goffset+i*n[1]*n[2]+j*n[2]+k];
+                }
+            }
+        }
+    }
+    
+    for(int ns=0;ns<nspec;ns++){
+        std::cout<<"ispc: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
     }
 
     delete[] pres;

@@ -2,7 +2,6 @@
 #define __HYPTERM_H__
 
 #include <cmath>
-#include <algorithm>
 #include "constants.h"
 
 struct thread_data{
