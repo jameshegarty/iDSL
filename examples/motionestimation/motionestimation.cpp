@@ -64,7 +64,7 @@ void ofBrute(
 int main(int argc, char **argv){
 
   if(argc!=5){
-    printf("Usage: ofBrute frame1.type frame2.type searchWindowRadius diffWindowRadius\n");
+    printf("Usage: motionestimation frame1.type frame2.type searchWindowRadius diffWindowRadius\n");
     return 1;
   }
 
@@ -91,8 +91,10 @@ int main(int argc, char **argv){
   saveImage("frame1gray.bmp", width, height, 1, frame1);
   saveImage("frame2gray.bmp", width, height, 1, frame2);
 
-  ofBrute(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
+  // zero out vectors array
+  for(int i=0; i<width*height*channels; i++){out[i]=0;}
 
+  ofBrute(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
 
   saveImage("vectors.bmp", width, height, channels, out);
 

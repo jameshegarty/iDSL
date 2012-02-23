@@ -165,7 +165,10 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
 
   if(strcmp(ext,"bmp")==0){
     return loadBMP(filename,width,height,channels,data);
+  }else if(strcmp(ext,"ppm")==0){
+    return loadPPM(filename,width,height,channels,data);
   }
+
 
   printf("unknown filetype %s\n",filename);
   return false;
@@ -637,7 +640,63 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
   // flip endian + row order
   for(int x=0; x<(*width); x++){
     for(int y=0; y<(*height); y++){
-      (*data)[((*height)-y)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
+      (*data)[((*height)-y-1)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
+    }
+  }
+
+  delete[] tempData;
+
+  return true;
+}
+
+
+bool loadPPM(const char *filename, int* width, int* height, int* channels, unsigned char **data){
+
+  FILE *file = fopen(filename,"rb");
+
+  char temp[16];
+
+  // read in type
+  fgets(temp,sizeof(temp),file); // read in up to a newline
+
+  if(strcmp(temp,"P6\n")!=0){
+    printf("Error, incorrect PPM type %s\n",temp);
+    return false;
+  }
+
+  *channels = 3; // always 3 for this type
+
+  // read in width / height
+  fgets(temp,sizeof(temp),file);
+  printf("%s\n",temp);
+
+  sscanf(temp,"%d %d\n", width, height);
+
+  // read in number of colors
+  fgets(temp,sizeof(temp),file);
+
+  if(strcmp(temp,"65535\n")==0){
+    printf("error, this function doesn't support 16 bit\n");
+    return false;
+  }else if(strcmp(temp,"255\n")==0){
+    printf("8 bit\n");
+  }else{
+    printf("unknown bit depth %s\n",temp);
+    return false;
+  }
+  
+  // read in data
+  *data = new unsigned char[ (*width) * (*height) * (*channels)];
+  unsigned char *tempData = new unsigned char[ (*width) * (*height) * (*channels)];
+
+  fread(tempData, (*width)*(*height)*(*channels)*sizeof(unsigned char), 1, file);
+
+  // flip row order
+  for(int c=0; c<(*channels); c++){
+    for(int x=0; x<(*width); x++){ 
+      for(int y=0; y<(*height); y++){
+	(*data)[(((*height)-y-1)*(*width)+x)*3+c] = tempData[(y*(*width)+x)*3+c];
+      }
     }
   }
 
@@ -686,7 +745,7 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   // convert to short & flip y
   for(int x=0; x<(*width); x++){
     for(int y=0; y<(*height); y++){
-      (*data)[((*height)-y)*(*width)+x] = tempData[y*(*width)+x];
+      (*data)[((*height)-y-1)*(*width)+x] = tempData[y*(*width)+x];
     }
   }
 
