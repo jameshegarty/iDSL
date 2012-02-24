@@ -35,6 +35,13 @@ double **dmatrix(int nrl, int nrh, int ncl, int nch)
 	return m;
 }
 
+void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch)
+/* free a double matrix allocated by dmatrix() */
+{
+  free((FREE_ARG) (m[nrl]+ncl-NR_END));
+  free((FREE_ARG) (m+nrl-NR_END));
+}
+
 double *dvector(int nl, int nh)
 /* allocate a double vector with subscript range v[nl..nh] */
 {
