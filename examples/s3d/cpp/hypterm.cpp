@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <cmath>
+#include <ctime>
 
 #include "constants.h"
 
@@ -46,7 +47,7 @@ void init(const int *n,const int *ng,const double *dx,const int nspec,double ***
         }
     }
 }
-void hypterm0(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){
+void hypterm(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){
     for(int i=ng[0];i<n[0]+ng[0];i++){
         for(int j=ng[1];j<n[1]+ng[1];j++){
             for(int k=ng[2];k<n[2]+ng[2];k++){
@@ -105,24 +106,16 @@ void hypterm0(const int *n,const int *ng,const double *dx,const int nspec,double
                     +GAMMA*(cons[i+3][j][k][I_SP+nsp]*unp3-cons[i-3][j][k][I_SP+nsp]*unm3)
                     +DELTA*(cons[i+4][j][k][I_SP+nsp]*unp4-cons[i-4][j][k][I_SP+nsp]*unm4))/dx[0];
                 }
-            }
-        }
-    }
-}
 
-void hypterm1(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){
-    for(int i=ng[0];i<n[0]+ng[0];i++){
-        for(int j=ng[1];j<n[1]+ng[1];j++){
-            for(int k=ng[2];k<n[2]+ng[2];k++){
-                double unp1 = cons[i][j+1][k][I_MY]/cons[i][j+1][k][I_RHO];
-                double unp2 = cons[i][j+2][k][I_MY]/cons[i][j+2][k][I_RHO];
-                double unp3 = cons[i][j+3][k][I_MY]/cons[i][j+3][k][I_RHO];
-                double unp4 = cons[i][j+4][k][I_MY]/cons[i][j+4][k][I_RHO];
+                unp1 = cons[i][j+1][k][I_MY]/cons[i][j+1][k][I_RHO];
+                unp2 = cons[i][j+2][k][I_MY]/cons[i][j+2][k][I_RHO];
+                unp3 = cons[i][j+3][k][I_MY]/cons[i][j+3][k][I_RHO];
+                unp4 = cons[i][j+4][k][I_MY]/cons[i][j+4][k][I_RHO];
                 
-                double unm1 = cons[i][j-1][k][I_MY]/cons[i][j-1][k][I_RHO];
-                double unm2 = cons[i][j-2][k][I_MY]/cons[i][j-2][k][I_RHO];
-                double unm3 = cons[i][j-3][k][I_MY]/cons[i][j-3][k][I_RHO];
-                double unm4 = cons[i][j-4][k][I_MY]/cons[i][j-4][k][I_RHO];
+                unm1 = cons[i][j-1][k][I_MY]/cons[i][j-1][k][I_RHO];
+                unm2 = cons[i][j-2][k][I_MY]/cons[i][j-2][k][I_RHO];
+                unm3 = cons[i][j-3][k][I_MY]/cons[i][j-3][k][I_RHO];
+                unm4 = cons[i][j-4][k][I_MY]/cons[i][j-4][k][I_RHO];
 
                 flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
                    (ALPHA*(cons[i][j+1][k][I_MY]-cons[i][j-1][k][I_MY])
@@ -169,24 +162,16 @@ void hypterm1(const int *n,const int *ng,const double *dx,const int nspec,double
                       +GAMMA*(cons[i][j+3][k][I_SP+nsp]*unp3-cons[i][j-3][k][I_SP+nsp]*unm3)
                       +DELTA*(cons[i][j+4][k][I_SP+nsp]*unp4-cons[i][j-4][k][I_SP+nsp]*unm4))/dx[1];
                 }
-            }
-        }
-    }
-}
 
-void hypterm2(const int *n,const int *ng,const double *dx,const int nspec,double ****cons,double ***pres,double ****flux){
-    for(int i=ng[0];i<n[0]+ng[0];i++){
-        for(int j=ng[1];j<n[1]+ng[1];j++){
-            for(int k=ng[2];k<n[2]+ng[2];k++){
-                double unp1 = cons[i][j][k+1][I_MZ]/cons[i][j][k+1][I_RHO];
-                double unp2 = cons[i][j][k+2][I_MZ]/cons[i][j][k+2][I_RHO];
-                double unp3 = cons[i][j][k+3][I_MZ]/cons[i][j][k+3][I_RHO];
-                double unp4 = cons[i][j][k+4][I_MZ]/cons[i][j][k+4][I_RHO];
+                unp1 = cons[i][j][k+1][I_MZ]/cons[i][j][k+1][I_RHO];
+                unp2 = cons[i][j][k+2][I_MZ]/cons[i][j][k+2][I_RHO];
+                unp3 = cons[i][j][k+3][I_MZ]/cons[i][j][k+3][I_RHO];
+                unp4 = cons[i][j][k+4][I_MZ]/cons[i][j][k+4][I_RHO];
 
-                double unm1 = cons[i][j][k-1][I_MZ]/cons[i][j][k-1][I_RHO];
-                double unm2 = cons[i][j][k-2][I_MZ]/cons[i][j][k-2][I_RHO];
-                double unm3 = cons[i][j][k-3][I_MZ]/cons[i][j][k-3][I_RHO];
-                double unm4 = cons[i][j][k-4][I_MZ]/cons[i][j][k-4][I_RHO];
+                unm1 = cons[i][j][k-1][I_MZ]/cons[i][j][k-1][I_RHO];
+                unm2 = cons[i][j][k-2][I_MZ]/cons[i][j][k-2][I_RHO];
+                unm3 = cons[i][j][k-3][I_MZ]/cons[i][j][k-3][I_RHO];
+                unm4 = cons[i][j][k-4][I_MZ]/cons[i][j][k-4][I_RHO];
 
                 flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]=flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO]-
                    (ALPHA*(cons[i][j][k+1][I_MZ]-cons[i][j][k-1][I_MZ])
@@ -233,6 +218,7 @@ void hypterm2(const int *n,const int *ng,const double *dx,const int nspec,double
                       +GAMMA*(cons[i][j][k+3][I_SP+nsp]*unp3-cons[i][j][k-3][I_SP+nsp]*unm3)
                       +DELTA*(cons[i][j][k+4][I_SP+nsp]*unp4-cons[i][j][k-4][I_SP+nsp]*unm4))/dx[2];
                 }
+                std::cout << flux[i-ng[0]][j-ng[1]][k-ng[2]][I_RHO] << std::endl;
             }
         }
     }
@@ -243,7 +229,7 @@ int main(int argc, const char *argv[]){
     const int nspec=9;
     const double dx[3]={1e-3,1e-3,1e-3};
     
-    const int n[3]={32,32,32};
+    const int n[3]={4,4,4};
     const int ng[3]={4,4,4};
 
     double ***pres=new double**[n[0]+2*ng[0]];
@@ -274,9 +260,7 @@ int main(int argc, const char *argv[]){
         }
     }
     init(n,ng,dx,nspec,cons,pres);
-    hypterm0(n,ng,dx,nspec,cons,pres,flux);
-    hypterm1(n,ng,dx,nspec,cons,pres,flux);
-    hypterm2(n,ng,dx,nspec,cons,pres,flux);
+    hypterm(n,ng,dx,nspec,cons,pres,flux);
 
     double fluxmag[nspec+5];
     for(int i=0;i<nspec+5;i++){

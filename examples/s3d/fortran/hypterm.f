@@ -319,7 +319,7 @@ c     outputs: cons,pres
       integer, parameter :: nspec = 9
 
       integer, parameter :: lo(3) = (/  1,  1,  1 /)
-      integer, parameter :: hi(3) = (/ 32, 32, 32 /)
+      integer, parameter :: hi(3) = (/ 64, 64, 64 /)
 
       double precision, parameter :: dx(3) = (/ 1d-3, 1d-3, 1d-3 /)
 
