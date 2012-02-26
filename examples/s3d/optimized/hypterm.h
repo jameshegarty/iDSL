@@ -30,5 +30,6 @@ struct thread_data{
 
 void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *cons,double *pres,double *flux,int blocksize);
 void *hypterm_threaded(void *threadarg);
+void *hypterm_threaded_ispc(void *threadarg);
 
 #endif

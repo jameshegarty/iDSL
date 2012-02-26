@@ -1,6 +1,7 @@
 #include <pthread.h>
 
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <cstdlib>
 #include <cmath>
@@ -65,7 +66,7 @@ int main(int argc,char **argv){
     int nspec=14;
     double dx[3]={1e-3,1e-3,1e-3};
     
-    int n[3]={128,128,128};
+    int n[3]={64,64,64};
     int ng[3]={4,4,4};
 
     double *pres=new double[(n[0]+2*ng[0])*(n[1]+2*ng[1])*(n[2]+2*ng[2])];
@@ -80,31 +81,35 @@ int main(int argc,char **argv){
     timespec start_threaded;
     timespec start_serial;
     timespec start_ispc;
+    timespec start_threaded_ispc;
     timespec end_threaded;
     timespec end_serial;
     timespec end_ispc;
+    timespec end_threaded_ispc;
     init(n,ng,dx,nspec,cons,pres);
     clock_gettime(CLOCK_REALTIME,&start_threaded);
     pthread_t threads[numthreads];
     struct thread_data thread_data_array[numthreads];
     void *status;
+    std::stringstream thread_init_ss;
+    thread_init_ss << "Creating threads:";
     for(int t=0;t<numthreads;t++){
         thread_data_array[t].thread_id=t;
         thread_data_array[t].n0=n[0];
         thread_data_array[t].n1=n[1];
         thread_data_array[t].n2=n[2];
-        thread_data_array[t].n0s=(t%4)*(n[0]/4);
-        thread_data_array[t].n1s=((t/4)%4)*(n[1]/4);
-        thread_data_array[t].n2s=((t/16)%2)*(n[2]/2);
-        thread_data_array[t].n0e=((t%4)+1)*(n[0]/4);
-        thread_data_array[t].n1e=(((t/4)%4)+1)*(n[1]/4);
-        thread_data_array[t].n2e=(((t/16)%2)+1)*(n[2]/2);
-        //thread_data_array[t].n0s=0;
-        //thread_data_array[t].n1s=0;
-        //thread_data_array[t].n2s=0;
-        //thread_data_array[t].n0e=n[0];
-        //thread_data_array[t].n1e=n[1];
-        //thread_data_array[t].n2e=n[2];
+        //thread_data_array[t].n0s=(t%4)*(n[0]/4);
+        //thread_data_array[t].n1s=((t/4)%4)*(n[1]/4);
+        //thread_data_array[t].n2s=((t/16)%2)*(n[2]/2);
+        //thread_data_array[t].n0e=((t%4)+1)*(n[0]/4);
+        //thread_data_array[t].n1e=(((t/4)%4)+1)*(n[1]/4);
+        //thread_data_array[t].n2e=(((t/16)%2)+1)*(n[2]/2);
+        thread_data_array[t].n0s=0;
+        thread_data_array[t].n1s=0;
+        thread_data_array[t].n2s=0;
+        thread_data_array[t].n0e=n[0];
+        thread_data_array[t].n1e=n[1];
+        thread_data_array[t].n2e=n[2];
         thread_data_array[t].ng0=ng[0];
         thread_data_array[t].ng1=ng[1];
         thread_data_array[t].ng2=ng[2];
@@ -116,13 +121,14 @@ int main(int argc,char **argv){
         thread_data_array[t].cons=cons;
         thread_data_array[t].flux=flux;
         thread_data_array[t].blocksize=blocksize;
-        std::cout << "Creating thread " << t << std::endl;
+        thread_init_ss << " " << t;
         int rc=pthread_create(&threads[t],NULL,hypterm_threaded,(void*)&thread_data_array[t]);
         if(rc){
             std::cout << "ERROR; return code from pthread_create() is " << rc << std::endl;
             exit(EXIT_FAILURE);
         }
     }
+    std::cout << thread_init_ss.str() << std::endl;
     
     for(int t=0;t<numthreads;t++){
         pthread_join(threads[t],&status);
@@ -212,6 +218,77 @@ int main(int argc,char **argv){
     
     for(int ns=0;ns<nspec;ns++){
         std::cout<<"ispc: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
+    }
+
+    for(int i=0;i<nspec*n[0]*n[1]*n[2];i++){
+        flux[i]=0.0;
+    }   
+    
+    for(int i=0;i<nspec;i++){
+        fluxmag[i]=0.0;
+    }
+
+    clock_gettime(CLOCK_REALTIME,&start_threaded_ispc);
+    thread_init_ss.str("");
+    thread_init_ss << "Creating thread:";
+    for(int t=0;t<numthreads;t++){
+        thread_data_array[t].thread_id=t;
+        thread_data_array[t].n0=n[0];
+        thread_data_array[t].n1=n[1];
+        thread_data_array[t].n2=n[2];
+        //thread_data_array[t].n0s=(t%4)*(n[0]/4);
+        //thread_data_array[t].n1s=((t/4)%4)*(n[1]/4);
+        //thread_data_array[t].n2s=((t/16)%2)*(n[2]/2);
+        //thread_data_array[t].n0e=((t%4)+1)*(n[0]/4);
+        //thread_data_array[t].n1e=(((t/4)%4)+1)*(n[1]/4);
+        //thread_data_array[t].n2e=(((t/16)%2)+1)*(n[2]/2);
+        thread_data_array[t].n0s=0;
+        thread_data_array[t].n1s=0;
+        thread_data_array[t].n2s=0;
+        thread_data_array[t].n0e=n[0];
+        thread_data_array[t].n1e=n[1];
+        thread_data_array[t].n2e=n[2];
+        thread_data_array[t].ng0=ng[0];
+        thread_data_array[t].ng1=ng[1];
+        thread_data_array[t].ng2=ng[2];
+        thread_data_array[t].dx0=dx[0];
+        thread_data_array[t].dx1=dx[1];
+        thread_data_array[t].dx2=dx[2];
+        thread_data_array[t].nspec=nspec;
+        thread_data_array[t].pres=pres;
+        thread_data_array[t].cons=cons;
+        thread_data_array[t].flux=flux;
+        thread_data_array[t].blocksize=blocksize;
+        thread_init_ss << " " << t;
+        int rc=pthread_create(&threads[t],NULL,hypterm_threaded_ispc,(void*)&thread_data_array[t]);
+        if(rc){
+            std::cout << "ERROR; return code from pthread_create() is " << rc << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    std::cout << thread_init_ss.str() << std::endl;
+    
+    for(int t=0;t<numthreads;t++){
+        pthread_join(threads[t],&status);
+    }
+    clock_gettime(CLOCK_REALTIME,&end_threaded_ispc);
+    timespec diff_threaded_ispc;
+    diff_threaded_ispc.tv_sec=end_threaded_ispc.tv_sec-start_threaded_ispc.tv_sec;
+    diff_threaded_ispc.tv_nsec=end_threaded_ispc.tv_nsec-start_threaded_ispc.tv_nsec;
+    std::cout << "Threaded ispc Code Runtime: " << ((double)diff_threaded_ispc.tv_sec + ((double)diff_threaded_ispc.tv_nsec/1E9)) << std::endl;
+
+    for(int ns=0;ns<nspec;ns++){
+        for(int i=0;i<n[0];i++){
+            for(int j=0;j<n[1];j++){
+                for(int k=0;k<n[2];k++){
+                    fluxmag[ns]=fluxmag[ns]+flux[ns*goffset+i*n[1]*n[2]+j*n[2]+k]*flux[ns*goffset+i*n[1]*n[2]+j*n[2]+k];
+                }
+            }
+        }
+    }
+    
+    for(int ns=0;ns<nspec;ns++){
+        std::cout<<"threaded ispc: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
     }
 
     delete[] pres;
