@@ -5,6 +5,10 @@
 
 #include "svdcmp.h"
 
+bool near(float a, float b){
+  return abs(1.f-(a/b)) < 0.001f;
+}
+
 // calculate the pseudo inverse in place
 void pinv2by2(float *A){
   double **u = dmatrix(1,2,1,2);
@@ -24,47 +28,68 @@ void pinv2by2(float *A){
   temp[1] = v[1][2] * (1.f/w[2]);
   temp[3] = v[2][2] * (1.f/w[2]);
 
-  A[0] = temp[0]*u[1][1] + temp[1]*u[1][2];
-  A[2] = temp[2]*u[1][1] + temp[3]*u[1][2];
-  A[1] = temp[0]*u[2][1] + temp[1]*u[2][2];
-  A[3] = temp[2]*u[2][1] + temp[3]*u[2][2];
+  float R[4];
+
+  R[0] = temp[0]*u[1][1] + temp[1]*u[1][2];
+  R[2] = temp[2]*u[1][1] + temp[3]*u[1][2];
+  R[1] = temp[0]*u[2][1] + temp[1]*u[2][2];
+  R[3] = temp[2]*u[2][1] + temp[3]*u[2][2];
+
+  {  // varify correctness
+    float S[4];
+    S[0] = R[0]*A[0]+R[1]*A[2]; // = A_pseudo * A
+    S[1] = R[0]*A[1]+R[1]*A[3];
+    S[2] = R[2]*A[0]+R[3]*A[2];
+    S[3] = R[2]*A[1]+R[3]*A[3];
+
+    // A * A_pseudo * A == A
+    if(!(near(A[0]*S[0]+A[1]*S[2],A[0]) && 
+	 near(A[0]*S[1]+A[1]*S[3],A[1]) && 
+	 near(A[2]*S[0]+A[3]*S[2],A[2]) && 
+	 near(A[2]*S[1]+A[3]*S[3],A[3]))){
+      
+      printf("%f %f %f %f\n",A[0],A[1],A[2],A[3]);
+      printf("%f %f %f %f\n",R[0],R[1],R[2],R[3]);
+      printf("%f %f %f %f\n",S[0],S[1],S[2],S[3]);
+      assert(false);
+    }
+  }
+
+  A[0] = R[0];
+  A[1] = R[1];
+  A[2] = R[2];
+  A[3] = R[3];
 
   free_dmatrix(u,1,2,1,2);
   free_dmatrix(v,1,2,1,2);
 }
 
 // see here for ref: http://www.cs.ucf.edu/~mikel/Research/Optical_Flow.htm
+// output should have 3 channels (size width*height*3)
 void lucaskanade(
   int width, 
   int height, 
   int windowRadius, 
+  int iterations,
   unsigned char* frame1, 
   unsigned char* frame2, 
   unsigned char* out){
 
   float *Ix = new float[width*height];
   float *Iy = new float[width*height];
-  float *It = new float[width*height];
+  //  float *It = new float[width*height];
 
   float A[4]; // row major 2x2
   float b[2]; 
 
+  // zero out vectors array. 128 = 0 in our stupid fixed precision format
+  for(int i=0; i<width*height*3; i++){out[i]=128;}
+
   // calculate derivatives
   for(int x = 1; x < width - 1; x++){
     for(int y = 1; y < height - 1; y++){
-      Ix[y*width+x] = (float(frame1[(y-1)*width+x+1])-float(frame1[(y-1)*width+x-1]));
-      Ix[y*width+x] += (float(frame1[(y+1)*width+x+1])-float(frame1[(y+1)*width+x-1]));
-      Ix[y*width+x] /= 8.f;
-
       Ix[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
-
-      Iy[y*width+x] = (float(frame1[(y+1)*width+x-1])-float(frame1[(y-1)*width+x-1]));
-      Iy[y*width+x] += (float(frame1[(y+1)*width+x+1])-float(frame1[(y-1)*width+x+1]));
-      Iy[y*width+x] /= 8.f;
-
       Iy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
-
-      It[y*width+x] = (float(frame2[y*width+x])-float(frame1[y*width+x]));
     }
   }
 
@@ -72,46 +97,56 @@ void lucaskanade(
 
   int border = windowRadius;
 
-  for(int x = border; x < width - border; x++){
-    printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
-
-    for(int y = border; y < height - border; y++){
+  for(int i = 0; i<iterations; i++){
+    for(int x = border; x < width - border; x++){
+      printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
       
-      A[0] = 0.f;
-      A[1] = 0.f;
-      A[2] = 0.f;
-      A[3] = 0.f;
-      b[0] = 0.f;
-      b[1] = 0.f;
+      for(int y = border; y < height - border; y++){
+	
+	A[0] = 0.f;
+	A[1] = 0.f;
+	A[2] = 0.f;
+	A[3] = 0.f;
+	b[0] = 0.f;
+	b[1] = 0.f;
 
-      // loop over search window
-      for( int wx = -windowRadius; wx <= windowRadius; wx++){
-	for( int wy = -windowRadius; wy <= windowRadius; wy++){
-	  int windex = (y+wy)*width+x+wx;
-	  A[0] = A[0] + Ix[windex]*Ix[windex];
-	  A[1] = A[1] + Ix[windex]*Iy[windex];
-	  A[2] = A[2] + Ix[windex]*Iy[windex];
-	  A[3] = A[3] + Iy[windex]*Iy[windex];
-	  
-	  b[0] = b[0] + Ix[windex]*It[windex];
-	  b[1] = b[1] + Iy[windex]*It[windex];
+	float hx = (float(out[3*(y*width+x)])-128.f)/10.f;
+	float hy = (float(out[3*(y*width+x)+1])-128.f)/10.f;
+
+	// loop over search window
+	for( int wx = -windowRadius; wx <= windowRadius; wx++){
+	  for( int wy = -windowRadius; wy <= windowRadius; wy++){
+	    int windex = (y+wy)*width+x+wx;
+
+	    float dx = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Ix);
+	    float dy = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Iy);
+	    float F = sampleBilinear( width, height, x+wx-hx, y+wy-hy, frame1);
+	    float G = frame2[windex];
+
+	    A[0] = A[0] + dx*dx;
+	    A[1] = A[1] + dx*dy;
+	    A[2] = A[2] + dx*dy;
+	    A[3] = A[3] + dy*dy;
+	    
+	    b[0] = b[0] + dx*(G-F);
+	    b[1] = b[1] + dy*(G-F);
+	  }
 	}
+	
+	pinv2by2(A);
+	float outX = A[0]*(-b[0])+A[1]*(-b[1]); // result = Ainv * (-b)
+	float outY = A[2]*(-b[0])+A[3]*(-b[1]);
+	out[3*(y*width+x)]=128+(outX+hx)*10;
+	out[3*(y*width+x)+1]=128+(outY+hy)*10;
       }
-
-      pinv2by2(A);
-      float outX = A[0]*(-b[0])+A[1]*(-b[1]); // result = Ainv * (-b)
-      float outY = A[2]*(-b[0])+A[3]*(-b[1]);
-      out[3*(y*width+x)]=128+outX*10;
-      out[3*(y*width+x)+1]=128+outY*10;
     }
   }
-
 }
 
 int main(int argc, char **argv){
 
-  if(argc!=4){
-    printf("Usage: lucaskanade frame1.type frame2.type searchWindowRadius\n");
+  if(argc!=5){
+    printf("Usage: lucaskanade frame1.type frame2.type searchWindowRadius iterations\n");
     return 1;
   }
 
@@ -148,10 +183,7 @@ int main(int argc, char **argv){
   saveImage("frame1gray.bmp", width, height, 1, frame1);
   saveImage("frame2gray.bmp", width, height, 1, frame2);
 
-  // zero out vectors array
-  for(int i=0; i<width*height*channels; i++){out[i]=0;}
-
-  lucaskanade(width,height,atoi(argv[3]),frame1,frame2,out);
+  lucaskanade(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
 
   saveImage("vectors.bmp", width, height, channels, out);
 
