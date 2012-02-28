@@ -1,7 +1,7 @@
 #!/bin/bash
 
-IMAGESTACK="/Users/research/Documents/ImageStack.2010-7-31-source/bin/ImageStack"
-EXAMPLES="/Users/research/Documents/iDSL/examples/"
+IMAGESTACK="ImageStack"
+EXAMPLES="../../examples/"
 
 rm res_me.txt
 rm res_lk3.txt

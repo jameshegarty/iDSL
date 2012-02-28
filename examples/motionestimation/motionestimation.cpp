@@ -1,6 +1,7 @@
 #include "../util.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 void ofBrute(
@@ -73,8 +74,15 @@ int main(int argc, char **argv){
   unsigned char *data;
   unsigned char *data2;
 
-  loadImage(argv[1], &width, &height, &channels, &data);
-  loadImage(argv[2], &width2, &height2, &channels2, &data2);
+  if(!loadImage(argv[1], &width, &height, &channels, &data)){
+    printf("Error loading image\n");
+    return 1;
+  }
+
+  if(!loadImage(argv[2], &width2, &height2, &channels2, &data2)){
+    printf("Error loading image\n");
+    return 1;
+  }
 
   assert(width==width2);
   assert(height==height2);
