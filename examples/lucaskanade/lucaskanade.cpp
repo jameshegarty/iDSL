@@ -71,19 +71,36 @@ void lucaskanade(
   int height, 
   int windowRadius, 
   int iterations,
+  bool weighted,
   unsigned char* frame1, 
   unsigned char* frame2, 
   unsigned char* out){
 
   float *Ix = new float[width*height];
   float *Iy = new float[width*height];
-  //  float *It = new float[width*height];
 
   float A[4]; // row major 2x2
   float b[2]; 
 
+  int border = windowRadius;
+
   // zero out vectors array. 128 = 0 in our stupid fixed precision format
-  for(int i=0; i<width*height*3; i++){out[i]=128;}
+  for(int x = 0; x<width; x++){
+    for(int y = 0; y<height; y++){
+      for(int c = 0; c<3; c++){
+
+	if(x >= border &&
+	   x < width-border &&
+	   y >= border &&
+	   y < height-border &&
+	   c!=2){
+	  out[(y*width+x)*3+c]=128;
+	}else{
+	  out[(y*width+x)*3+c]=0;
+	}
+      }
+    }
+  }
 
   // calculate derivatives
   for(int x = 1; x < width - 1; x++){
@@ -94,9 +111,6 @@ void lucaskanade(
   }
 
   // do LK calculation
-
-  int border = windowRadius;
-
   for(int i = 0; i<iterations; i++){
     for(int x = border; x < width - border; x++){
       printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
@@ -118,18 +132,22 @@ void lucaskanade(
 	  for( int wy = -windowRadius; wy <= windowRadius; wy++){
 	    int windex = (y+wy)*width+x+wx;
 
+	    float w = abs(frame2[windex] - frame1[windex]);
+	    if(w!=0.f){w = 1.f/w;}
+	    if(!weighted){w = 1.f;}
+
 	    float dx = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Ix);
 	    float dy = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Iy);
 	    float F = sampleBilinear( width, height, x+wx-hx, y+wy-hy, frame1);
 	    float G = frame2[windex];
 
-	    A[0] = A[0] + dx*dx;
-	    A[1] = A[1] + dx*dy;
-	    A[2] = A[2] + dx*dy;
-	    A[3] = A[3] + dy*dy;
+	    A[0] = A[0] + dx*dx*w;
+	    A[1] = A[1] + dx*dy*w;
+	    A[2] = A[2] + dx*dy*w;
+	    A[3] = A[3] + dy*dy*w;
 	    
-	    b[0] = b[0] + dx*(G-F);
-	    b[1] = b[1] + dy*(G-F);
+	    b[0] = b[0] + dx*(G-F)*w;
+	    b[1] = b[1] + dy*(G-F)*w;
 	  }
 	}
 	
@@ -145,8 +163,9 @@ void lucaskanade(
 
 int main(int argc, char **argv){
 
-  if(argc!=5){
-    printf("Usage: lucaskanade frame1.type frame2.type searchWindowRadius iterations\n");
+  if(argc!=5 && argc!=6){
+    printf("Usage: lucaskanade frame1.type frame2.type searchWindowRadius iterations [-w]\n");
+    printf("add -w on the end to use the algorithm with weights\n");
     return 1;
   }
 
@@ -183,7 +202,7 @@ int main(int argc, char **argv){
   saveImage("frame1gray.bmp", width, height, 1, frame1);
   saveImage("frame2gray.bmp", width, height, 1, frame2);
 
-  lucaskanade(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
+  lucaskanade(width,height,atoi(argv[3]),atoi(argv[4]),argc==6,frame1,frame2,out);
 
   saveImage("vectors.bmp", width, height, channels, out);
 
