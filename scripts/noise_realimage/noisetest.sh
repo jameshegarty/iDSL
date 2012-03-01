@@ -3,8 +3,8 @@
 IMAGESTACK="ImageStack"
 EXAMPLES="../../examples/"
 
-rm res_me.txt
-rm res_lk3.txt
+rm ./results/res_me.txt
+rm ./results/res_lk3.txt
 
 for (( i=0; i<100; i+=5 ))
 do
@@ -13,10 +13,10 @@ done
 
 for (( i=0; i<100; i+=5 ))
 do
-    ${EXAMPLES}motionestimation/motionestimation ./m1.bmp ./temp/frame2_`printf "%02d" $i`.ppm 3 3 && ${EXAMPLES}diff/diff --L2 ./temp/vectors.bmp ref_w3.bmp >> ./results/res_me.txt &
+    ${EXAMPLES}motionestimation/motionestimation ./m1.bmp ./temp/frame2_`printf "%02d" $i`.ppm ./temp/vectors_me_`printf "%02d" $i`.bmp 3 3 && ${EXAMPLES}diff/diff --L2 ./temp/vectors_me_`printf "%02d" $i`.bmp ref_w3.bmp >> ./results/res_me.txt &
 done
 
 for (( i=0; i<100; i+=5 ))
 do
-    ${EXAMPLES}lucaskanade/lucaskanade ./m1.bmp ./temp/frame2_`printf "%02d" $i`.ppm 9 3 && ${EXAMPLES}diff/diff --L2 ./temp/vectors.bmp ref_w3.bmp >> ./results/res_lk3.txt &
+    ${EXAMPLES}lucaskanade/lucaskanade ./m1.bmp ./temp/frame2_`printf "%02d" $i`.ppm ./temp/vectors_lk_`printf "%02d" $i`.bmp 6 3 && ${EXAMPLES}diff/diff --L2 ./temp/vectors_lk_`printf "%02d" $i`.bmp ref_w3.bmp >> ./results/res_lk3.txt &
 done
