@@ -30,8 +30,15 @@ int main(int argc, char **argv){
     diffType = Pixels;
   }
 
-  loadImage(argv[2], &width, &height, &channels, &data);
-  loadImage(argv[3], &width2, &height2, &channels2, &data2);
+  if(!loadImage(argv[2], &width, &height, &channels, &data)){
+    printf("Error loading image\n");
+    return 1;
+  }
+
+  if(!loadImage(argv[3], &width2, &height2, &channels2, &data2)){
+    printf("Error loading image\n");
+    return 1;
+  }
 
   assert(width==width2);
   assert(height==height2);

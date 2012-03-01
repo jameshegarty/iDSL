@@ -78,6 +78,8 @@ the transpose VT) is output as v[1..n][1..n].
 	int flag,i,its,j,jj,k,l,nm;
 	double anorm,c,f,g,h,s,scale,x,y,z,*rv1;
 
+	l = 0; // make gdb not complain about l being uninitialized (jh)
+
 	rv1=dvector(1,n);
 	g=scale=anorm=0.0; /* Householder reduction to bidiagonal form */
 	for (i=1;i<=n;i++) {

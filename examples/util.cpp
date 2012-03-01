@@ -1,5 +1,6 @@
 #include "util.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "string.h"
 #include <math.h>
 #include <assert.h>
@@ -188,7 +189,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   fseek(file, 4, SEEK_CUR);
   currentCurPos += 4;
 
-  i = fread(width, 4, 1, file);
+  if ((i = fread(width, 4, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 4;
   *width = endian(*width);
   
@@ -199,7 +204,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   }
 
   // read the height 
-  i = fread(height, 4, 1, file);
+  if ((i = fread(height, 4, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 4;
   *height = endian(*height);
     
@@ -210,7 +219,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
     
   // read the planes
   unsigned short planes;          // number of planes in image (must be 1) 
-  i=fread(&planes, 2, 1, file);
+  if ((i=fread(&planes, 2, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 2;
   planes=endian(planes);
   
@@ -586,19 +599,29 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
 
   char temp[16];
 
-  fgets(temp,sizeof(temp),file);
+  if(fgets(temp,sizeof(temp),file)==NULL){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"P5\n")!=0){
     printf("Error, incorrect PGM type %s\n",temp);
     return false;
   }
 
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
+
   printf(" %s\n",temp);
 
   sscanf(temp,"%d %d", width, height);
 
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"65535\n")==0){
     printf("16 bit");
@@ -612,7 +635,11 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
   *data = new unsigned short[ (*width) * (*height)];
   unsigned short *tempData = new unsigned short[ (*width) * (*height)];
 
-  fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // flip endian + row order
   for(int x=0; x<(*width); x++){
@@ -634,7 +661,10 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   char temp[16];
 
   // read in type
-  fgets(temp,sizeof(temp),file); // read in up to a newline
+  if(!fgets(temp,sizeof(temp),file)){ // read in up to a newline
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"P6\n")!=0){
     printf("Error, incorrect PPM type %s\n",temp);
@@ -644,13 +674,20 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   *channels = 3; // always 3 for this type
 
   // read in width / height
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
+
   printf("%s\n",temp);
 
   sscanf(temp,"%d %d\n", width, height);
 
   // read in number of colors
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"65535\n")==0){
     printf("error, this function doesn't support 16 bit\n");
@@ -666,7 +703,11 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   *data = new unsigned char[ (*width) * (*height) * (*channels)];
   unsigned char *tempData = new unsigned char[ (*width) * (*height) * (*channels)];
 
-  fread(tempData, (*width)*(*height)*(*channels)*sizeof(unsigned char), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, (*width)*(*height)*(*channels)*sizeof(unsigned char), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // flip row order
   for(int c=0; c<(*channels); c++){
@@ -695,6 +736,12 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
     int frames, width, height, channels, typeCode;
   } h;
 
+  h.frames = 0;
+  h.width = 0;
+  h.height = 0;
+  h.channels = 0;
+  h.typeCode = 0;
+
   assert(fread(&h, sizeof(int), 5, file) == 5);
   //	 "File ended before end of header\n");
 
@@ -717,7 +764,11 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   *data = new unsigned short[size];
   float *tempData = new float[size];
 
-  fread(tempData, size*sizeof(float), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, size*sizeof(float), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // convert to short & flip y
   for(int x=0; x<(*width); x++){

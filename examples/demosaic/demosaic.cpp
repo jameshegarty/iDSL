@@ -1,6 +1,7 @@
 #include "../util.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 void demosaicStupid(
@@ -38,7 +39,7 @@ void demosaicStupid(
   // green
   for(int x=2; x<width-2; x++){
     for(int y=2; y<height-2; y++){
-      if((x+xoff)%2==1 && (y+yoff)%2==0 || (x+xoff)%2 == 0 && (y+yoff)%2 == 1){
+      if( ((x+xoff)%2==1 && (y+yoff)%2==0) || ((x+xoff)%2 == 0 && (y+yoff)%2 == 1) ){
 	// green is known
 	out[1*width*height + y*width+x] = in[y*width+x];
       }else{ // interpolate
