@@ -77,11 +77,8 @@ void lucaskanade(
   unsigned char* frame2, 
   unsigned char* out){
 
-  float *Ix = new float[width*height];
-  float *Iy = new float[width*height];
-  float *A = new float[width*height*2];
 
-  float b[2]; 
+
 
   int border = windowRadius;
 
@@ -103,24 +100,64 @@ void lucaskanade(
     }
   }
 
-  // calculate derivatives
-  for(int x = 1; x < width - 1; x++){
-    for(int y = 1; y < height - 1; y++){
-      Ix[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
-      Iy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
+  // calculate stuff that we will use every iteration
+  // such as derivatives, matrix A^-1 of image gradients, weights.
+  // we're calling frame1 F and frame2 G, as in the original LK paper
+  float *Fx = new float[width*height];
+  float *Fy = new float[width*height];
+  float *A = new float[width*height*4];
+  float *W = new float[width*height];
+
+  for(int x = border; x < width - border; x++){
+    for(int y = border; y < height - border; y++){
+      // calculate derivatives
+      Fx[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
+      Fy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
+
+      float Gx = (float(frame2[y*width+x+1])-float(frame2[y*width+x-1]))/2.f;
+      float Gy = (float(frame2[(y+1)*width+x])-float(frame2[(y-1)*width+x]))/2.f;
+
+      // calculate weight W
+      float w = sqrt(pow(Gx-Fx[y*width+x],2)+pow(Gy-Fy[y*width+x],2));
+      if(w!=0.f){w = 1.f/w;}
+      if(!weighted){w = 1.f;}
+      W[y*width+x] = w;
+ 
     }
   }
 
-  // calculate matrix A^-1 of image gradients
-  // only has to be calculated once per run at a certain resolution
   float Atemp[4]; // row major 2x2
+  // calculate A^-1. notice, can't combine this with loop above
+  // b/c it requires all values to already be calculated in diff window
   for(int x = border; x < width - border; x++){
     for(int y = border; y < height - border; y++){
-	A[0] = 0.f;
-	A[1] = 0.f;
-	A[2] = 0.f;
-	A[3] = 0.f;
 
+      Atemp[0] = 0.f;
+      Atemp[1] = 0.f;
+      Atemp[2] = 0.f;
+      Atemp[3] = 0.f;
+
+      for( int wx = -windowRadius; wx <= windowRadius; wx++){
+	for( int wy = -windowRadius; wy <= windowRadius; wy++){
+	  int windex = (y+wy)*width+x+wx;
+
+	  float dx = Fx[windex];
+	  float dy = Fx[windex];
+	    
+	  Atemp[0] = Atemp[0] + dx*dx*W[windex];
+	  Atemp[1] = Atemp[1] + dx*dy*W[windex];
+	  Atemp[2] = Atemp[2] + dx*dy*W[windex];
+	  Atemp[3] = Atemp[3] + dy*dy*W[windex];
+	  
+	}
+      }
+
+      pinv2by2(Atemp);
+
+      A[(y*width+x)*4+0]=Atemp[0];
+      A[(y*width+x)*4+1]=Atemp[1];
+      A[(y*width+x)*4+2]=Atemp[2];
+      A[(y*width+x)*4+3]=Atemp[3];
     }
   }
 
@@ -135,7 +172,8 @@ void lucaskanade(
       printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
       
       for(int y = border; y < height - border; y++){
-	
+
+	float b[2]; 
 	b[0] = 0.f;
 	b[1] = 0.f;
 
@@ -147,28 +185,19 @@ void lucaskanade(
 	  for( int wy = -windowRadius; wy <= windowRadius; wy++){
 	    int windex = (y+wy)*width+x+wx;
 
-	    float w = abs(frame2[windex] - frame1[windex]);
-	    if(w!=0.f){w = 1.f/w;}
-	    if(!weighted){w = 1.f;}
+	    float dx = Fx[windex];
+	    float dy = Fx[windex];
+	    float F = frame1[windex];
+	    float G = sampleBilinear( width, height, x+wx-hx, y+wy-hy, frame2);
 
-	    float dx = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Ix);
-	    float dy = sampleBilinear( width, height, x+wx-hx, y+wy-hy, Iy);
-	    float F = sampleBilinear( width, height, x+wx-hx, y+wy-hy, frame1);
-	    float G = frame2[windex];
-
-	    A[0] = A[0] + dx*dx*w;
-	    A[1] = A[1] + dx*dy*w;
-	    A[2] = A[2] + dx*dy*w;
-	    A[3] = A[3] + dy*dy*w;
 	    
-	    b[0] = b[0] + dx*(G-F)*w;
-	    b[1] = b[1] + dy*(G-F)*w;
+	    b[0] = b[0] + dx*(G-F)*W[windex];
+	    b[1] = b[1] + dy*(G-F)*W[windex];
 	  }
 	}
 	
-	pinv2by2(A);
-	float outX = A[0]*(-b[0])+A[1]*(-b[1]); // result = Ainv * (-b)
-	float outY = A[2]*(-b[0])+A[3]*(-b[1]);
+	float outX = A[(y*width+x)*4+0]*(-b[0])+A[(y*width+x)*4+1]*(-b[1]); // result = Ainv * (-b)
+	float outY = A[(y*width+x)*4+2]*(-b[0])+A[(y*width+x)*4+3]*(-b[1]);
 	out[3*(y*width+x)]=128+(outX+hx)*10;
 	out[3*(y*width+x)+1]=128+(outY+hy)*10;
       }
