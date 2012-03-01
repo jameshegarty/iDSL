@@ -78,8 +78,8 @@ void lucaskanade(
 
   float *Ix = new float[width*height];
   float *Iy = new float[width*height];
+  float *A = new float[width*height*2];
 
-  float A[4]; // row major 2x2
   float b[2]; 
 
   int border = windowRadius;
@@ -110,17 +110,31 @@ void lucaskanade(
     }
   }
 
+  // calculate matrix A^-1 of image gradients
+  // only has to be calculated once per run at a certain resolution
+  float Atemp[4]; // row major 2x2
+  for(int x = border; x < width - border; x++){
+    for(int y = border; y < height - border; y++){
+	A[0] = 0.f;
+	A[1] = 0.f;
+	A[2] = 0.f;
+	A[3] = 0.f;
+
+    }
+  }
+
   // do LK calculation
+  /* Notice: instead of iterating the same # of times for each pixel,
+     we could instead iterate a different # of times for each pixel 
+     (until the error < epsilon for ex). This would prob make for better
+     results, but wouldn't be parallelizable
+  */
   for(int i = 0; i<iterations; i++){
     for(int x = border; x < width - border; x++){
       printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
       
       for(int y = border; y < height - border; y++){
 	
-	A[0] = 0.f;
-	A[1] = 0.f;
-	A[2] = 0.f;
-	A[3] = 0.f;
 	b[0] = 0.f;
 	b[1] = 0.f;
 
