@@ -6,12 +6,25 @@
 
 #include "svdcmp.h"
 
-bool near(float a, float b){
+bool near(double a, double b){
   return abs(1.f-(a/b)) < 0.001f;
 }
 
 // calculate the pseudo inverse in place
+// if singular return a matrix of zeros
 void pinv2by2(float *A){
+
+  if(A[0]*A[3]-A[1]*A[2] == 0){
+
+    printf("Singular\n");
+    A[0]=0;
+    A[1]=0;
+    A[2]=0;
+    A[3]=0;
+
+    return;
+  }
+
   double **u = dmatrix(1,2,1,2);
   double **v = dmatrix(1,2,1,2);
   u[1][1]=A[0];
@@ -23,13 +36,13 @@ void pinv2by2(float *A){
 
   // A_pinv = V * w_pinv * U_transpose
   // w_pinv is just w with the entries inverted (it's a diagonal square matrix)
-  float temp[4];
+  double temp[4];
   temp[0] = v[1][1] * (1.f/w[1]); //temp = V*w_pinv
   temp[2] = v[2][1] * (1.f/w[1]);
   temp[1] = v[1][2] * (1.f/w[2]);
   temp[3] = v[2][2] * (1.f/w[2]);
 
-  float R[4];
+  double R[4];
 
   R[0] = temp[0]*u[1][1] + temp[1]*u[1][2];
   R[2] = temp[2]*u[1][1] + temp[3]*u[1][2];
@@ -37,21 +50,29 @@ void pinv2by2(float *A){
   R[3] = temp[2]*u[2][1] + temp[3]*u[2][2];
 
   {  // varify correctness
-    float S[4];
+    double S[4];
     S[0] = R[0]*A[0]+R[1]*A[2]; // = A_pseudo * A
     S[1] = R[0]*A[1]+R[1]*A[3];
     S[2] = R[2]*A[0]+R[3]*A[2];
     S[3] = R[2]*A[1]+R[3]*A[3];
 
+    double AApA[4];
+    AApA[0] = A[0]*S[0]+A[1]*S[2];
+    AApA[1] = A[0]*S[1]+A[1]*S[3];
+    AApA[2] = A[2]*S[0]+A[3]*S[2];
+    AApA[3] = A[2]*S[1]+A[3]*S[3];
+
     // A * A_pseudo * A == A
-    if(!(near(A[0]*S[0]+A[1]*S[2],A[0]) && 
-	 near(A[0]*S[1]+A[1]*S[3],A[1]) && 
-	 near(A[2]*S[0]+A[3]*S[2],A[2]) && 
-	 near(A[2]*S[1]+A[3]*S[3],A[3]))){
+    if(!(near(AApA[0],A[0]) && 
+	 near(AApA[1],A[1]) && 
+	 near(AApA[2],A[2]) && 
+	 near(AApA[3],A[3]))){
       
       printf("%f %f %f %f\n",A[0],A[1],A[2],A[3]);
-      printf("%f %f %f %f\n",R[0],R[1],R[2],R[3]);
+      printf("pinv %f %f %f %f\n",R[0],R[1],R[2],R[3]);
       printf("%f %f %f %f\n",S[0],S[1],S[2],S[3]);
+      printf("AApA %f %f %f %f\n",AApA[0],AApA[1],AApA[2],AApA[3]);
+      printf("w %f %f\n",w[1],w[2]);
       assert(false);
     }
   }
@@ -76,9 +97,6 @@ void lucaskanade(
   unsigned char* frame1, 
   unsigned char* frame2, 
   unsigned char* out){
-
-
-
 
   int border = windowRadius;
 
@@ -122,7 +140,6 @@ void lucaskanade(
       if(w!=0.f){w = 1.f/w;}
       if(!weighted){w = 1.f;}
       W[y*width+x] = w;
- 
     }
   }
 
@@ -142,7 +159,7 @@ void lucaskanade(
 	  int windex = (y+wy)*width+x+wx;
 
 	  float dx = Fx[windex];
-	  float dy = Fx[windex];
+	  float dy = Fy[windex];
 	    
 	  Atemp[0] = Atemp[0] + dx*dx*W[windex];
 	  Atemp[1] = Atemp[1] + dx*dy*W[windex];
@@ -186,10 +203,9 @@ void lucaskanade(
 	    int windex = (y+wy)*width+x+wx;
 
 	    float dx = Fx[windex];
-	    float dy = Fx[windex];
+	    float dy = Fy[windex];
 	    float F = frame1[windex];
-	    float G = sampleBilinear( width, height, x+wx-hx, y+wy-hy, frame2);
-
+	    float G = sampleBilinear( width, height, x+wx+hx, y+wy+hy, frame2);
 	    
 	    b[0] = b[0] + dx*(G-F)*W[windex];
 	    b[1] = b[1] + dy*(G-F)*W[windex];
@@ -212,16 +228,6 @@ int main(int argc, char **argv){
     printf("add -w on the end to use the algorithm with weights\n");
     return 1;
   }
-
-  ////
-  float A[4];
-  A[0] = -7;
-  A[1] = 26;
-  A[2] = 14;
-  A[3] = 0;
-  pinv2by2(A);
-  printf("%f %f %f %f                            \n\n\n",A[0], A[1],A[2],A[3]);
-  ///
 
   int width, height, channels;
   int width2, height2, channels2;
