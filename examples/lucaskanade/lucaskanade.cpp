@@ -89,142 +89,173 @@ void pinv2by2(float *A){
 // see here for ref: http://www.cs.ucf.edu/~mikel/Research/Optical_Flow.htm
 // output should have 3 channels (size width*height*3)
 void lucaskanade(
-  int width, 
-  int height, 
+  int inWidth, 
+  int inHeight, 
   int windowRadius, 
   int iterations,
   int pyramidLevels,
   bool weighted,
-  unsigned char* frame1, 
-  unsigned char* frame2, 
+  unsigned char* frame1in, 
+  unsigned char* frame2in, 
   unsigned char* out){
-
+  
+  assert(pyramidLevels > 0);
   int border = windowRadius;
 
   unsigned char **frame1Pyramid = NULL;
   unsigned char **frame2Pyramid = NULL;
 
-  buildPyramid(width,height,pyramidLevels,frame1,frame1Pyramid);
-  buildPyramid(width,height,pyramidLevels,frame2,frame2Pyramid);
+  buildPyramid(inWidth,inHeight,pyramidLevels,frame1in,&frame1Pyramid);
+  buildPyramid(inWidth,inHeight,pyramidLevels,frame2in,&frame2Pyramid);
+
 
   // zero out vectors array. 128 = 0 in our stupid fixed precision format
-  for(int x = 0; x<width; x++){
-    for(int y = 0; y<height; y++){
+  for(int x = 0; x<inWidth; x++){
+    for(int y = 0; y<inHeight; y++){
       for(int c = 0; c<3; c++){
 
 	if(x >= border &&
-	   x < width-border &&
+	   x < inWidth-border &&
 	   y >= border &&
-	   y < height-border &&
+	   y < inHeight-border &&
 	   c!=2){
-	  out[(y*width+x)*3+c]=128;
+	  out[(y*inWidth+x)*3+c]=128;
 	}else{
-	  out[(y*width+x)*3+c]=0;
+	  out[(y*inWidth+x)*3+c]=0;
 	}
       }
     }
   }
 
-  // calculate stuff that we will use every iteration
-  // such as derivatives, matrix A^-1 of image gradients, weights.
-  // we're calling frame1 F and frame2 G, as in the original LK paper
-  float *Fx = new float[width*height];
-  float *Fy = new float[width*height];
-  float *A = new float[width*height*4];
-  float *W = new float[width*height];
+  float *Fx = new float[inWidth*inHeight];
+  float *Fy = new float[inWidth*inHeight];
+  float *A = new float[inWidth*inHeight*4];
+  float *W = new float[inWidth*inHeight];
+  unsigned char *outTemp = new unsigned char[inWidth*inHeight*3];
 
-  for(int x = border; x < width - border; x++){
-    for(int y = border; y < height - border; y++){
-      // calculate derivatives
-      Fx[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
-      Fy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
+  for(int l=pyramidLevels-1; l>=0; l--){
+    // calculate stuff that we will use every iteration
+    // such as derivatives, matrix A^-1 of image gradients, weights.
+    // we're calling frame1 F and frame2 G, as in the original LK paper
+    
+    unsigned char *frame1 = frame1Pyramid[l];
+    unsigned char *frame2 = frame2Pyramid[l];
 
-      float Gx = (float(frame2[y*width+x+1])-float(frame2[y*width+x-1]))/2.f;
-      float Gy = (float(frame2[(y+1)*width+x])-float(frame2[(y-1)*width+x]))/2.f;
+    int width = inWidth / pow(2,l);
+    int height = inHeight / pow(2,l);
 
-      // calculate weight W
-      float w = sqrt(pow(Gx-Fx[y*width+x],2)+pow(Gy-Fy[y*width+x],2));
-      if(w!=0.f){w = 1.f/w;}
-      if(!weighted){w = 1.f;}
-      W[y*width+x] = w;
-    }
-  }
-
-  float Atemp[4]; // row major 2x2
-  // calculate A^-1. notice, can't combine this with loop above
-  // b/c it requires all values to already be calculated in diff window
-  for(int x = border; x < width - border; x++){
-    for(int y = border; y < height - border; y++){
-
-      Atemp[0] = 0.f;
-      Atemp[1] = 0.f;
-      Atemp[2] = 0.f;
-      Atemp[3] = 0.f;
-
-      for( int wx = -windowRadius; wx <= windowRadius; wx++){
-	for( int wy = -windowRadius; wy <= windowRadius; wy++){
-	  int windex = (y+wy)*width+x+wx;
-
-	  float dx = Fx[windex];
-	  float dy = Fy[windex];
-	    
-	  Atemp[0] = Atemp[0] + dx*dx*W[windex];
-	  Atemp[1] = Atemp[1] + dx*dy*W[windex];
-	  Atemp[2] = Atemp[2] + dx*dy*W[windex];
-	  Atemp[3] = Atemp[3] + dy*dy*W[windex];
-	  
-	}
-      }
-
-      pinv2by2(Atemp);
-
-      A[(y*width+x)*4+0]=Atemp[0];
-      A[(y*width+x)*4+1]=Atemp[1];
-      A[(y*width+x)*4+2]=Atemp[2];
-      A[(y*width+x)*4+3]=Atemp[3];
-    }
-  }
-
-  // do LK calculation
-  /* Notice: instead of iterating the same # of times for each pixel,
-     we could instead iterate a different # of times for each pixel 
-     (until the error < epsilon for ex). This would prob make for better
-     results, but wouldn't be parallelizable
-  */
-  for(int i = 0; i<iterations; i++){
     for(int x = border; x < width - border; x++){
-      printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
-      
+      for(int y = border; y < height - border; y++){
+	// calculate derivatives
+	Fx[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
+	Fy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
+	
+	float Gx = (float(frame2[y*width+x+1])-float(frame2[y*width+x-1]))/2.f;
+	float Gy = (float(frame2[(y+1)*width+x])-float(frame2[(y-1)*width+x]))/2.f;
+	
+	// calculate weight W
+	float w = sqrt(pow(Gx-Fx[y*width+x],2)+pow(Gy-Fy[y*width+x],2));
+	if(w!=0.f){w = 1.f/w;}
+	if(!weighted){w = 1.f;}
+	W[y*width+x] = w;
+      }
+    }
+    
+    float Atemp[4]; // row major 2x2
+    // calculate A^-1. notice, can't combine this with loop above
+    // b/c it requires all values to already be calculated in diff window
+    for(int x = border; x < width - border; x++){
       for(int y = border; y < height - border; y++){
 
-	float b[2]; 
-	b[0] = 0.f;
-	b[1] = 0.f;
+	Atemp[0] = 0.f;
+	Atemp[1] = 0.f;
+	Atemp[2] = 0.f;
+	Atemp[3] = 0.f;
 
-	float hx = (float(out[3*(y*width+x)])-128.f)/10.f;
-	float hy = (float(out[3*(y*width+x)+1])-128.f)/10.f;
-
-	// loop over search window
 	for( int wx = -windowRadius; wx <= windowRadius; wx++){
 	  for( int wy = -windowRadius; wy <= windowRadius; wy++){
 	    int windex = (y+wy)*width+x+wx;
 
 	    float dx = Fx[windex];
 	    float dy = Fy[windex];
-	    float F = frame1[windex];
-	    float G = sampleBilinear( width, height, x+wx+hx, y+wy+hy, frame2);
 	    
-	    b[0] = b[0] + dx*(G-F)*W[windex];
-	    b[1] = b[1] + dy*(G-F)*W[windex];
+	    Atemp[0] = Atemp[0] + dx*dx*W[windex];
+	    Atemp[1] = Atemp[1] + dx*dy*W[windex];
+	    Atemp[2] = Atemp[2] + dx*dy*W[windex];
+	    Atemp[3] = Atemp[3] + dy*dy*W[windex];	  
 	  }
 	}
-	
-	float outX = A[(y*width+x)*4+0]*(-b[0])+A[(y*width+x)*4+1]*(-b[1]); // result = Ainv * (-b)
-	float outY = A[(y*width+x)*4+2]*(-b[0])+A[(y*width+x)*4+3]*(-b[1]);
-	out[3*(y*width+x)]=128+(outX+hx)*10;
-	out[3*(y*width+x)+1]=128+(outY+hy)*10;
+
+	pinv2by2(Atemp);
+
+	A[(y*width+x)*4+0]=Atemp[0];
+	A[(y*width+x)*4+1]=Atemp[1];
+	A[(y*width+x)*4+2]=Atemp[2];
+	A[(y*width+x)*4+3]=Atemp[3];
       }
     }
+
+    // do LK calculation
+    /* Notice: instead of iterating the same # of times for each pixel,
+       we could instead iterate a different # of times for each pixel 
+       (until the error < epsilon for ex). This would prob make for better
+       results, but wouldn't be parallelizable
+    */
+    for(int i = 0; i<iterations; i++){
+      for(int x = border; x < width - border; x++){
+	printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
+      
+	for(int y = border; y < height - border; y++){
+
+	  float b[2]; 
+	  b[0] = 0.f;
+	  b[1] = 0.f;
+
+	  float hx = (float(out[3*(y*width+x)])-128.f)/10.f;
+	  float hy = (float(out[3*(y*width+x)+1])-128.f)/10.f;
+
+	  // loop over search window
+	  for( int wx = -windowRadius; wx <= windowRadius; wx++){
+	    for( int wy = -windowRadius; wy <= windowRadius; wy++){
+	      int windex = (y+wy)*width+x+wx;
+
+	      float dx = Fx[windex];
+	      float dy = Fy[windex];
+	      float F = frame1[windex];
+	      float G = sampleBilinear( width, height, x+wx+hx, y+wy+hy, frame2);
+	    
+	      b[0] = b[0] + dx*(G-F)*W[windex];
+	      b[1] = b[1] + dy*(G-F)*W[windex];
+	    }
+	  }
+	
+	  float outX = A[(y*width+x)*4+0]*(-b[0])+A[(y*width+x)*4+1]*(-b[1]); // result = Ainv * (-b)
+	  float outY = A[(y*width+x)*4+2]*(-b[0])+A[(y*width+x)*4+3]*(-b[1]);
+	  out[3*(y*width+x)]=128+(outX+hx)*10;
+	  out[3*(y*width+x)+1]=128+(outY+hy)*10;
+	}
+      }
+    }
+
+    // upsample vector field for next level
+    char tstr[100];
+    sprintf(tstr,"f1_%d.bmp",l);
+    saveImage(tstr, width, height, 1, frame1);
+    sprintf(tstr,"f2_%d.bmp",l);
+    saveImage(tstr, width, height, 1, frame2);
+    sprintf(tstr,"pv_%d.bmp",l);
+    saveImage(tstr, width, height, 3, out);
+    
+    if(l>0){
+      for(int x = 0; x < width*2; x++){
+	for(int y = 0; y < height*2; y++){
+	  sampleBilinear3Channels(width,height, float(x)/2.f, float(y)/2.f, out, &outTemp[(y*width*2+x)*3]);
+	}
+      }
+
+      memcpy(out,outTemp,width*height*4);
+    }
+
   }
 }
 

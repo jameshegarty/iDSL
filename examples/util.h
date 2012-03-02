@@ -23,8 +23,8 @@ bool loadPGM(const char *file, int* width, int* height, unsigned short **data); 
 bool loadPPM(const char *file, int* width, int* height, int* channels, unsigned char **data);
 bool loadTMP(const char *file, int* width, int* height, int* channels, unsigned short **data); // return 16 bit data
 
-template<class T>
-T sampleBilinear(int width, int height, float x, float y, const T* in){
+template<class T, int channels, int channelSelector>
+T sampleBilinearLow(int width, int height, float x, float y, const T* in){
   if(x < 0.f){return 0;}
   if(y < 0.f){return 0;}
   if(x >= float(width-1)){return 0;}
@@ -33,10 +33,10 @@ T sampleBilinear(int width, int height, float x, float y, const T* in){
   int ix = x;
   int iy = y;
 
-  float aa = in[iy*width+ix];
-  float ba = in[iy*width+ix+1];
-  float ab = in[(iy+1)*width+ix];
-  float bb = in[(iy+1)*width+ix+1];
+  float aa = in[(iy*width+ix)*channels+channelSelector];
+  float ba = in[(iy*width+ix+1)*channels+channelSelector];
+  float ab = in[((iy+1)*width+ix)*channels+channelSelector];
+  float bb = in[((iy+1)*width+ix+1)*channels+channelSelector];
   float rx = x-floor(x);
   float rxi = 1.f-rx;
   float ry = y-floor(y);
@@ -46,6 +46,18 @@ T sampleBilinear(int width, int height, float x, float y, const T* in){
   float resb = ab*rxi+bb*rx;
 
   return (resa*ryi+resb*ry);
+}
+
+template<class T>
+T sampleBilinear(int width, int height, float x, float y, const T* in){
+  return sampleBilinearLow<T,1,0>(width,height,x,y,in);
+}
+
+template<class T>
+void sampleBilinear3Channels(int width, int height, float x, float y, const T* in, T* out){
+  out[0] = sampleBilinearLow<T,3,0>(width,height,x,y,in);
+  out[1] = sampleBilinearLow<T,3,1>(width,height,x,y,in);
+  out[2] = sampleBilinearLow<T,3,2>(width,height,x,y,in);
 }
 
 unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in);
@@ -72,13 +84,14 @@ void buildPyramid(
   int height, 
   int desiredLevels,
   T *input,
-  T **output){
+  T ***output){
 
-  assert( width % int(pow(2,desiredLevels-1)) == 0);
-  assert( height % int(pow(2,desiredLevels-1)) == 0);
+  assert( desiredLevels > 0 );
+  assert( width % int(pow(2,desiredLevels-1)) == 0 );
+  assert( height % int(pow(2,desiredLevels-1)) == 0 );
 
-  output = new T*[desiredLevels];
-  output[0] = input;
+  (*output) = new T*[desiredLevels];
+  (*output)[0] = input;
 
   T *temp = new T[width*height];
   T *res = new T[width*height];
@@ -90,21 +103,27 @@ void buildPyramid(
 
   // iteratively blur and downsample
   for(int l=1; l < desiredLevels; l++){
-    memcpy( temp, output[l-1], width*height/(pow(2,l-1)*pow(2,l-1)) );
 
     // blur
     convolve2DClamped(
       width/pow(2,l-1),
       height/pow(2,l-1),
-      temp,
+      (*output)[l-1],
       kernelRadius*2+1,
       kernelRadius*2+1,
       kernel,
-      res);
+      temp);
 
     // downsample 
-
-    output[l]=res;
+    int tw = width/int(pow(2,l));
+    int th = height/int(pow(2,l));
+    for(int x=0; x < tw; x++){
+      for(int y=0; y < th; y++){
+	res[tw*y+x] = temp[tw*2*y+x*2];
+      }
+    }
+    
+    (*output)[l]=res;
     res += width*height/int(pow(2,l)*pow(2,l));
     assert(res-origRes < width*height);
   }

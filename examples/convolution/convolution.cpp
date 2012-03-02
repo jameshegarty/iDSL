@@ -39,6 +39,7 @@ void convolve2DClampedInternal(
   float *kernel,
   T* out){
 
+  assert(in != out); // doesn't support convolving in place
   assert(kernelWidth % 2 == 1);
   assert(kernelHeight % 2 == 1);
 
@@ -113,6 +114,8 @@ void convolve2D(
   int outWidth, 
   int outHeight, 
   float* out){
+
+  assert(a!=out && b!=out); // doesn't support convolving in place
 
   assert(aWidth % 2 == 1);
   assert(aHeight % 2 == 1);
