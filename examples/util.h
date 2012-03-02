@@ -3,6 +3,8 @@
 
 #include <math.h>
 #include <assert.h>
+#include <string.h>
+#include "convolution/convolution.h"
 
 enum Color {RED, GREEN, BLUE, ALPHA, LUM};
 
@@ -63,6 +65,52 @@ T clamp(T Value, T Min, T Max){
   return (Value < Min)? Min : (Value > Max)? Max : Value;
 }
 
+// only works on 1 channel data for now
+template<typename T>
+void buildPyramid(
+  int width, 
+  int height, 
+  int desiredLevels,
+  T *input,
+  T **output){
+
+  assert( width % int(pow(2,desiredLevels-1)) == 0);
+  assert( height % int(pow(2,desiredLevels-1)) == 0);
+
+  output = new T*[desiredLevels];
+  output[0] = input;
+
+  T *temp = new T[width*height];
+  T *res = new T[width*height];
+  T *origRes = res;
+
+  const int kernelRadius = 2;
+  float kernel[(kernelRadius*2+1)*(kernelRadius*2+1)];
+  buildGaussianKernel2D(1,2,kernel);
+
+  // iteratively blur and downsample
+  for(int l=1; l < desiredLevels; l++){
+    memcpy( temp, output[l-1], width*height/(pow(2,l-1)*pow(2,l-1)) );
+
+    // blur
+    convolve2DClamped(
+      width/pow(2,l-1),
+      height/pow(2,l-1),
+      temp,
+      kernelRadius*2+1,
+      kernelRadius*2+1,
+      kernel,
+      res);
+
+    // downsample 
+
+    output[l]=res;
+    res += width*height/int(pow(2,l)*pow(2,l));
+    assert(res-origRes < width*height);
+  }
+
+  delete[] temp;
+}
 
 unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
                        int x, int y, Color colorChannel,

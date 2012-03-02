@@ -93,12 +93,19 @@ void lucaskanade(
   int height, 
   int windowRadius, 
   int iterations,
+  int pyramidLevels,
   bool weighted,
   unsigned char* frame1, 
   unsigned char* frame2, 
   unsigned char* out){
 
   int border = windowRadius;
+
+  unsigned char **frame1Pyramid = NULL;
+  unsigned char **frame2Pyramid = NULL;
+
+  buildPyramid(width,height,pyramidLevels,frame1,frame1Pyramid);
+  buildPyramid(width,height,pyramidLevels,frame2,frame2Pyramid);
 
   // zero out vectors array. 128 = 0 in our stupid fixed precision format
   for(int x = 0; x<width; x++){
@@ -223,8 +230,8 @@ void lucaskanade(
 
 int main(int argc, char **argv){
 
-  if(argc!=6 && argc!=7){
-    printf("Usage: lucaskanade frame1.type frame2.type out.bmp searchWindowRadius iterations [-w]\n");
+  if(argc!=7 && argc!=8){
+    printf("Usage: lucaskanade frame1.type frame2.type out.bmp searchWindowRadius iterations pyramidLevels [-w]\n");
     printf("add -w on the end to use the algorithm with weights\n");
     return 1;
   }
@@ -252,7 +259,7 @@ int main(int argc, char **argv){
   saveImage("frame1gray.bmp", width, height, 1, frame1);
   saveImage("frame2gray.bmp", width, height, 1, frame2);
 
-  lucaskanade(width,height,atoi(argv[4]),atoi(argv[5]),argc==7,frame1,frame2,out);
+  lucaskanade(width,height,atoi(argv[4]),atoi(argv[5]),atoi(argv[6]),argc==8,frame1,frame2,out);
 
   saveImage(argv[3], width, height, channels, out);
 
