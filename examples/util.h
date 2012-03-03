@@ -15,6 +15,8 @@ bool loadImage(const char *file, int* width, int* height, int *channels, unsigne
 bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
+// scales data to be [0,1]
+bool saveImageAutoLevels(const char *file, int width, int height, int channels, float *data);
 
 bool loadBMP(const char *file, int* width, int* height, int *channels, unsigned char **data);
 bool saveBMP(const char *file, int width, int height, int channels, unsigned char *data);
@@ -23,20 +25,44 @@ bool loadPGM(const char *file, int* width, int* height, unsigned short **data); 
 bool loadPPM(const char *file, int* width, int* height, int* channels, unsigned char **data);
 bool loadTMP(const char *file, int* width, int* height, int* channels, unsigned short **data); // return 16 bit data
 
-template<class T, int channels, int channelSelector>
+template<class T, bool clamped, int channels, int channelSelector>
 T sampleBilinearLow(int width, int height, float x, float y, const T* in){
-  if(x < 0.f){return 0;}
-  if(y < 0.f){return 0;}
-  if(x >= float(width-1)){return 0;}
-  if(y >= float(height-1)){return 0;}
+
+  if(clamped){
+    if(x < 0.f){x=0.f;}
+    if(y < 0.f){y=0.f;}
+    if(x > float(width-2)){x=width-2;}
+    if(y > float(height-2)){y=height-2;}
+  }else{
+    if(x < 0.f){return 0;}
+    if(y < 0.f){return 0;}
+    if(x >= float(width-2)){return 0;}
+    if(y >= float(height-2)){return 0;}
+  }
 
   int ix = x;
   int iy = y;
 
-  float aa = in[(iy*width+ix)*channels+channelSelector];
-  float ba = in[(iy*width+ix+1)*channels+channelSelector];
-  float ab = in[((iy+1)*width+ix)*channels+channelSelector];
-  float bb = in[((iy+1)*width+ix+1)*channels+channelSelector];
+  int aai = (iy*width+ix)*channels+channelSelector;
+  assert(aai >= 0);
+  assert(aai < width*height*channels);
+  float aa = in[aai];
+
+  int bai = (iy*width+ix+1)*channels+channelSelector;
+  assert(bai >= 0);
+  assert(bai < width*height*channels);
+  float ba = in[bai];
+
+  int abi = ((iy+1)*width+ix)*channels+channelSelector;
+  assert(abi >= 0);
+  assert(abi < width*height*channels);
+  float ab = in[abi];
+
+  int bbi = ((iy+1)*width+ix+1)*channels+channelSelector;
+  assert(bbi >= 0);
+  assert(bbi < width*height*channels);
+  float bb = in[bbi];
+
   float rx = x-floor(x);
   float rxi = 1.f-rx;
   float ry = y-floor(y);
@@ -50,17 +76,49 @@ T sampleBilinearLow(int width, int height, float x, float y, const T* in){
 
 template<class T>
 T sampleBilinear(int width, int height, float x, float y, const T* in){
-  return sampleBilinearLow<T,1,0>(width,height,x,y,in);
+  return sampleBilinearLow<T,false,1,0>(width,height,x,y,in);
+}
+
+template<class T>
+T sampleBilinearClamped(int width, int height, float x, float y, const T* in){
+  return sampleBilinearLow<T,true,1,0>(width,height,x,y,in);
 }
 
 template<class T>
 void sampleBilinear3Channels(int width, int height, float x, float y, const T* in, T* out){
-  out[0] = sampleBilinearLow<T,3,0>(width,height,x,y,in);
-  out[1] = sampleBilinearLow<T,3,1>(width,height,x,y,in);
-  out[2] = sampleBilinearLow<T,3,2>(width,height,x,y,in);
+  out[0] = sampleBilinearLow<T,false,3,0>(width,height,x,y,in);
+  out[1] = sampleBilinearLow<T,false,3,1>(width,height,x,y,in);
+  out[2] = sampleBilinearLow<T,false,3,2>(width,height,x,y,in);
 }
 
-unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in);
+template<typename T>
+T sampleNearest(int width, int height, float x, float y, const T* in){
+  if(x < 0.f){return 0;}
+  if(y < 0.f){return 0;}
+  if(x >= float(width-2)){return 0;}
+  if(y >= float(height-2)){return 0;}
+
+  int ix = x;
+  int iy = y;
+
+  return in[iy*width+ix];
+}
+
+template<typename T>
+T sampleNearestClamped(int width, int height, float x, float y, const T* in){
+  if(x < 0.f){x=0.f;}
+  if(y < 0.f){y=0.f;}
+  if(x > float(width-1)){x=width-1;}
+  if(y > float(height-1)){y=height-1;}
+
+  int ix = x;
+  int iy = y;
+
+  assert(ix >= 0);
+  assert(iy*width+ix >=0 && iy*width+ix < width*height);
+  return in[iy*width+ix];
+}
+
 
 void normalizeKernel(int width, int height, float *kernel);
 float sum(int width, int height, float *kernel);

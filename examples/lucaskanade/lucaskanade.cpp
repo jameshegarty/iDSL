@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <iostream>
+#include <algorithm>
 
 #include "svdcmp.h"
 
@@ -119,7 +121,9 @@ void lucaskanade(
 
   float *Fx = new float[inWidth*inHeight];
   float *Fy = new float[inWidth*inHeight];
-  float *A = new float[inWidth*inHeight*4];
+  //float *A = new float[inWidth*inHeight*4];
+  float *A[4];
+  for(int i=0; i<4; i++){A[i]=new float[inWidth*inHeight];}
   float *W = new float[inWidth*inHeight];
   unsigned char *outTemp = new unsigned char[inWidth*inHeight*3];
 
@@ -134,18 +138,26 @@ void lucaskanade(
     int width = inWidth / pow(2,l);
     int height = inHeight / pow(2,l);
 
-    for(int x = border; x < width - border; x++){
-      for(int y = border; y < height - border; y++){
+    for(int x = 0; x < width; x++){
+      for(int y = 0; y < height; y++){
 	// calculate derivatives
-	Fx[y*width+x] = (float(frame1[y*width+x+1])-float(frame1[y*width+x-1]))/2.f;
-	Fy[y*width+x] = (float(frame1[(y+1)*width+x])-float(frame1[(y-1)*width+x]))/2.f;
-	
-	float Gx = (float(frame2[y*width+x+1])-float(frame2[y*width+x-1]))/2.f;
-	float Gy = (float(frame2[(y+1)*width+x])-float(frame2[(y-1)*width+x]))/2.f;
+	float f1xp1 = sampleNearestClamped(width, height, x+1, y, frame1);
+	float f1xm1 = sampleNearestClamped(width, height, x-1, y, frame1);
+	float f1yp1 = sampleNearestClamped(width, height, x, y+1, frame1);
+	float f1ym1 = sampleNearestClamped(width, height, x, y-1, frame1);
+	Fx[y*width+x] = (f1xp1-f1xm1)/2.f;
+	Fy[y*width+x] = (f1yp1-f1ym1)/2.f;
+
+	float f2xp1 = sampleNearestClamped(width, height, x+1, y, frame2);
+	float f2xm1 = sampleNearestClamped(width, height, x-1, y, frame2);
+	float f2yp1 = sampleNearestClamped(width, height, x, y+1, frame2);
+	float f2ym1 = sampleNearestClamped(width, height, x, y-1, frame2);	
+	float Gx = (f2xp1-f2xm1)/2.f;
+	float Gy = (f2yp1-f2ym1)/2.f;
 	
 	// calculate weight W
 	float w = sqrt(pow(Gx-Fx[y*width+x],2)+pow(Gy-Fy[y*width+x],2));
-	if(w!=0.f){w = 1.f/w;}
+	if(w!=0.f){w = 1.f/w;}else{w=100.f;}
 	if(!weighted){w = 1.f;}
 	W[y*width+x] = w;
       }
@@ -154,9 +166,8 @@ void lucaskanade(
     float Atemp[4]; // row major 2x2
     // calculate A^-1. notice, can't combine this with loop above
     // b/c it requires all values to already be calculated in diff window
-    for(int x = border; x < width - border; x++){
-      for(int y = border; y < height - border; y++){
-
+    for(int x = 0; x < width; x++){
+      for(int y = 0; y < height; y++){
 	Atemp[0] = 0.f;
 	Atemp[1] = 0.f;
 	Atemp[2] = 0.f;
@@ -164,26 +175,42 @@ void lucaskanade(
 
 	for( int wx = -windowRadius; wx <= windowRadius; wx++){
 	  for( int wy = -windowRadius; wy <= windowRadius; wy++){
-	    int windex = (y+wy)*width+x+wx;
 
-	    float dx = Fx[windex];
-	    float dy = Fy[windex];
-	    
-	    Atemp[0] = Atemp[0] + dx*dx*W[windex];
-	    Atemp[1] = Atemp[1] + dx*dy*W[windex];
-	    Atemp[2] = Atemp[2] + dx*dy*W[windex];
-	    Atemp[3] = Atemp[3] + dy*dy*W[windex];	  
+	    float dx = sampleNearestClamped(width, height, x+wx, y+wy, Fx);
+	    float dy = sampleNearestClamped(width, height, x+wx, y+wy, Fy);
+	    float w = sampleNearestClamped(width, height, x+wx, y+wy, W);
+
+	    Atemp[0] = Atemp[0] + dx*dx*w;
+	    Atemp[1] = Atemp[1] + dx*dy*w;
+	    Atemp[2] = Atemp[2] + dx*dy*w;
+	    Atemp[3] = Atemp[3] + dy*dy*w;	  
 	  }
 	}
 
 	pinv2by2(Atemp);
 
-	A[(y*width+x)*4+0]=Atemp[0];
-	A[(y*width+x)*4+1]=Atemp[1];
-	A[(y*width+x)*4+2]=Atemp[2];
-	A[(y*width+x)*4+3]=Atemp[3];
+	A[0][y*width+x]=Atemp[0];
+	A[1][y*width+x]=Atemp[1];
+	A[2][y*width+x]=Atemp[2];
+	A[3][y*width+x]=Atemp[3];
       }
     }
+
+    char tstr[100];
+    sprintf(tstr,"dx_%d.bmp",l);
+    saveImageAutoLevels(tstr, width, height, 1, Fx);
+    sprintf(tstr,"dy_%d.bmp",l);
+    saveImageAutoLevels(tstr, width, height, 1, Fy);
+    sprintf(tstr,"w_%d.bmp",l);
+    saveImage(tstr, width, height, 1, W);
+    sprintf(tstr,"a0_%d.bmp",l);
+    saveImage(tstr, width, height, 1, A[0]);
+    sprintf(tstr,"a1_%d.bmp",l);
+    saveImage(tstr, width, height, 1, A[0]);
+    sprintf(tstr,"a2_%d.bmp",l);
+    saveImage(tstr, width, height, 1, A[0]);
+    sprintf(tstr,"a3_%d.bmp",l);
+    saveImage(tstr, width, height, 1, A[0]);
 
     // do LK calculation
     /* Notice: instead of iterating the same # of times for each pixel,
@@ -192,10 +219,10 @@ void lucaskanade(
        results, but wouldn't be parallelizable
     */
     for(int i = 0; i<iterations; i++){
-      for(int x = border; x < width - border; x++){
+      for(int x = 0; x < width; x++){
 	printf("\b\b\b\b\b\b\b\b\b\b%03d / %03d\n",x,width-border);
       
-	for(int y = border; y < height - border; y++){
+	for(int y = 0; y < height; y++){
 
 	  float b[2]; 
 	  b[0] = 0.f;
@@ -204,23 +231,35 @@ void lucaskanade(
 	  float hx = (float(out[3*(y*width+x)])-128.f)/10.f;
 	  float hy = (float(out[3*(y*width+x)+1])-128.f)/10.f;
 
+	  //	  float wsum = 0.f;
+
 	  // loop over search window
 	  for( int wx = -windowRadius; wx <= windowRadius; wx++){
 	    for( int wy = -windowRadius; wy <= windowRadius; wy++){
-	      int windex = (y+wy)*width+x+wx;
 
-	      float dx = Fx[windex];
-	      float dy = Fy[windex];
-	      float F = frame1[windex];
-	      float G = sampleBilinear( width, height, x+wx+hx, y+wy+hy, frame2);
+	      float dx = sampleNearestClamped( width, height, x+wx, y+wy, Fx );
+	      float dy = sampleNearestClamped( width, height, x+wx, y+wy, Fy );
+	      float w = sampleNearestClamped( width, height, x+wx, y+wy, W );
+
+	      if(x+wx < 0){assert(w==0.f);}
+	      if(x+wx >width-1){assert(w==0.f);}
+	      if(y+wy < 0){assert(w==0.f);}
+	      if(y+wy >height-1){assert(w==0.f);}
+
+	      //	      wsum += w;
+
+	      float F = sampleNearestClamped( width, height, x+wx, y+wy, frame1 );
+	      float G = sampleBilinearClamped( width, height, x+wx+hx, y+wy+hy, frame2 );
 	    
-	      b[0] = b[0] + dx*(G-F)*W[windex];
-	      b[1] = b[1] + dy*(G-F)*W[windex];
+	      b[0] = b[0] + dx*(G-F)*w;
+	      b[1] = b[1] + dy*(G-F)*w;
 	    }
 	  }
-	
-	  float outX = A[(y*width+x)*4+0]*(-b[0])+A[(y*width+x)*4+1]*(-b[1]); // result = Ainv * (-b)
-	  float outY = A[(y*width+x)*4+2]*(-b[0])+A[(y*width+x)*4+3]*(-b[1]);
+	  //	  b[0]*=pow(2*windowRadius+1,2)/wsum;
+	  //	  b[1]*=pow(2*windowRadius+1,2)/wsum;
+
+	  float outX = A[0][y*width+x]*(-b[0])+A[1][y*width+x]*(-b[1]); // result = Ainv * (-b)
+	  float outY = A[2][y*width+x]*(-b[0])+A[3][y*width+x]*(-b[1]);
 	  out[3*(y*width+x)]=128+(outX+hx)*10;
 	  out[3*(y*width+x)+1]=128+(outY+hy)*10;
 	}
@@ -228,7 +267,6 @@ void lucaskanade(
     }
 
     // upsample vector field for next level
-    char tstr[100];
     sprintf(tstr,"f1_%d.bmp",l);
     saveImage(tstr, width, height, 1, frame1);
     sprintf(tstr,"f2_%d.bmp",l);

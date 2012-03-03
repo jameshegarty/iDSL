@@ -106,20 +106,6 @@ float sum(int width, int height, float *kernel){
   return s;
 }
 
-
-unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in){
-  if(x < 0.f){return 0;}
-  if(y < 0.f){return 0;}
-  if(x > float(width)){return 0;}
-  if(y > float(height)){return 0;}
-
-  int ix = x;
-  int iy = y;
-
-  return in[iy*width+ix];
-}
-
-
 unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
                         int x, int y, Color colorChannel,
                         const unsigned char *data) {
@@ -354,8 +340,30 @@ bool saveImage(const char *filename, int width, int height, int channels, float 
   unsigned char *temp = new unsigned char[width*height*channels];
 
   for(int i=0; i<width*height*channels; i++){
-    //    temp[i] = (unsigned char)(data[i]*255.f);
     temp[i] = (unsigned char)( ((data[i]+1.f)/2.f) * 255.f );
+  }
+
+  bool res = saveImage(filename,width,height,channels,temp);
+  delete[] temp;
+
+  return res;
+}
+
+bool saveImageAutoLevels(const char *filename, int width, int height, int channels, float *data){
+  // convert float to unsigned char
+
+  unsigned char *temp = new unsigned char[width*height*channels];
+
+  float max = -1000000.f;
+  float min = 1000000.f;
+
+  for(int i=0; i<width*height*channels; i++){
+    if(data[i]<min){min=data[i];}
+    if(data[i]>max){max=data[i];}
+  }
+
+  for(int i=0; i<width*height*channels; i++){
+    temp[i] = (unsigned char)( ((data[i]-min)/(max-min)) * 255.f );
   }
 
   bool res = saveImage(filename,width,height,channels,temp);
