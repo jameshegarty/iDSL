@@ -108,21 +108,11 @@ void lucaskanade(
   buildPyramid(inWidth,inHeight,pyramidLevels,frame1in,&frame1Pyramid);
   buildPyramid(inWidth,inHeight,pyramidLevels,frame2in,&frame2Pyramid);
 
-
   // zero out vectors array. 128 = 0 in our stupid fixed precision format
   for(int x = 0; x<inWidth; x++){
     for(int y = 0; y<inHeight; y++){
       for(int c = 0; c<3; c++){
-
-	if(x >= border &&
-	   x < inWidth-border &&
-	   y >= border &&
-	   y < inHeight-border &&
-	   c!=2){
-	  out[(y*inWidth+x)*3+c]=128;
-	}else{
-	  out[(y*inWidth+x)*3+c]=0;
-	}
+	out[(y*inWidth+x)*3+c]= (c==2)?0:128;
       }
     }
   }
@@ -250,12 +240,17 @@ void lucaskanade(
       for(int x = 0; x < width*2; x++){
 	for(int y = 0; y < height*2; y++){
 	  sampleBilinear3Channels(width,height, float(x)/2.f, float(y)/2.f, out, &outTemp[(y*width*2+x)*3]);
+          outTemp[(y*width*2+x)*3+0] = ((float(outTemp[(y*width*2+x)*3+0])-128.f)*2.f)+128.f;
+          outTemp[(y*width*2+x)*3+1] = ((float(outTemp[(y*width*2+x)*3+1])-128.f)*2.f)+128.f;
 	}
       }
 
-      memcpy(out,outTemp,width*height*4);
-    }
+      memcpy(out,outTemp,width*height*4*3);
 
+      sprintf(tstr,"pv_up_%d.bmp",l);
+      saveImage(tstr, width*2, height*2, 3, out);
+      
+    }
   }
 }
 

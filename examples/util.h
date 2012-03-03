@@ -114,15 +114,19 @@ void buildPyramid(
       kernel,
       temp);
 
+    saveImage("lol.bmp", width/pow(2,l-1), height/pow(2,l-1), 1, temp);
+
     // downsample 
     int tw = width/int(pow(2,l));
     int th = height/int(pow(2,l));
     for(int x=0; x < tw; x++){
       for(int y=0; y < th; y++){
-	res[tw*y+x] = temp[tw*2*y+x*2];
+	res[tw*y+x] = temp[tw*4*y+x*2];
       }
     }
     
+    saveImage("lol2.bmp", tw, th, 1, res);
+
     (*output)[l]=res;
     res += width*height/int(pow(2,l)*pow(2,l));
     assert(res-origRes < width*height);
