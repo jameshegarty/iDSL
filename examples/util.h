@@ -190,6 +190,8 @@ void buildPyramid(
     assert(res-origRes < width*height);
   }
 
+  origRes = 0; // make gcc not complain about usused variable
+
   delete[] temp;
 }
 

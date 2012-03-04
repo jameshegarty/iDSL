@@ -196,7 +196,7 @@ void lucaskanade(
       }
     }
 
-    char tstr[100];
+    /*char tstr[100];
     sprintf(tstr,"dx_%d.bmp",l);
     saveImageAutoLevels(tstr, width, height, 1, Fx);
     sprintf(tstr,"dy_%d.bmp",l);
@@ -211,6 +211,7 @@ void lucaskanade(
     saveImage(tstr, width, height, 1, A[0]);
     sprintf(tstr,"a3_%d.bmp",l);
     saveImage(tstr, width, height, 1, A[0]);
+    */
 
     // do LK calculation
     /* Notice: instead of iterating the same # of times for each pixel,
@@ -267,13 +268,14 @@ void lucaskanade(
     }
 
     // upsample vector field for next level
+    /*
     sprintf(tstr,"f1_%d.bmp",l);
     saveImage(tstr, width, height, 1, frame1);
     sprintf(tstr,"f2_%d.bmp",l);
     saveImage(tstr, width, height, 1, frame2);
     sprintf(tstr,"pv_%d.bmp",l);
     saveImage(tstr, width, height, 3, out);
-    
+    */
     if(l>0){
       for(int x = 0; x < width*2; x++){
 	for(int y = 0; y < height*2; y++){
@@ -285,9 +287,10 @@ void lucaskanade(
 
       memcpy(out,outTemp,width*height*4*3);
 
+      /*
       sprintf(tstr,"pv_up_%d.bmp",l);
       saveImage(tstr, width*2, height*2, 3, out);
-      
+      */
     }
   }
 }
@@ -320,8 +323,8 @@ int main(int argc, char **argv){
   toGrayscale(width,height,data,frame1);
   toGrayscale(width,height,data2,frame2);
 
-  saveImage("frame1gray.bmp", width, height, 1, frame1);
-  saveImage("frame2gray.bmp", width, height, 1, frame2);
+  //saveImage("frame1gray.bmp", width, height, 1, frame1);
+  //saveImage("frame2gray.bmp", width, height, 1, frame2);
 
   lucaskanade(width,height,atoi(argv[4]),atoi(argv[5]),atoi(argv[6]),argc==8,frame1,frame2,out);
 
