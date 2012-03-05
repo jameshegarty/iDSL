@@ -110,11 +110,11 @@ void lucaskanade(
   buildPyramid(inWidth,inHeight,pyramidLevels,frame1in,&frame1Pyramid);
   buildPyramid(inWidth,inHeight,pyramidLevels,frame2in,&frame2Pyramid);
 
-  // zero out vectors array. 128 = 0 in our stupid fixed precision format
+  // zero out vectors array. 127 = 0 in our stupid fixed precision format
   for(int x = 0; x<inWidth; x++){
     for(int y = 0; y<inHeight; y++){
       for(int c = 0; c<3; c++){
-	out[(y*inWidth+x)*3+c]= (c==2)?0:128;
+	out[(y*inWidth+x)*3+c]= (c==2)?0:127;
       }
     }
   }
@@ -229,8 +229,8 @@ void lucaskanade(
 	  b[0] = 0.f;
 	  b[1] = 0.f;
 
-	  float hx = (float(out[3*(y*width+x)])-128.f)/10.f;
-	  float hy = (float(out[3*(y*width+x)+1])-128.f)/10.f;
+	  float hx = (float(out[3*(y*width+x)])-127.f)/10.f;
+	  float hy = (float(out[3*(y*width+x)+1])-127.f)/10.f;
 
 	  //	  float wsum = 0.f;
 
@@ -261,8 +261,8 @@ void lucaskanade(
 
 	  float outX = A[0][y*width+x]*(-b[0])+A[1][y*width+x]*(-b[1]); // result = Ainv * (-b)
 	  float outY = A[2][y*width+x]*(-b[0])+A[3][y*width+x]*(-b[1]);
-	  out[3*(y*width+x)]=128+(outX+hx)*10;
-	  out[3*(y*width+x)+1]=128+(outY+hy)*10;
+	  out[3*(y*width+x)]=127+(outX+hx)*10;
+	  out[3*(y*width+x)+1]=127+(outY+hy)*10;
 	}
       }
     }
@@ -280,8 +280,8 @@ void lucaskanade(
       for(int x = 0; x < width*2; x++){
 	for(int y = 0; y < height*2; y++){
 	  sampleBilinear3Channels(width,height, float(x)/2.f, float(y)/2.f, out, &outTemp[(y*width*2+x)*3]);
-          outTemp[(y*width*2+x)*3+0] = ((float(outTemp[(y*width*2+x)*3+0])-128.f)*2.f)+128.f;
-          outTemp[(y*width*2+x)*3+1] = ((float(outTemp[(y*width*2+x)*3+1])-128.f)*2.f)+128.f;
+          outTemp[(y*width*2+x)*3+0] = ((float(outTemp[(y*width*2+x)*3+0])-127.f)*2.f)+127.f;
+          outTemp[(y*width*2+x)*3+1] = ((float(outTemp[(y*width*2+x)*3+1])-127.f)*2.f)+127.f;
 	}
       }
 

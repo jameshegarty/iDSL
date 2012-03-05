@@ -28,10 +28,10 @@ int main(int argc, char **argv){
   for(int x=0; x < width; x++){
     for(int y=0; y < height; y++){
       float xoff = vdata[3*(y*width+x)];
-      xoff = (xoff-128.f)/10.f;
+      xoff = (xoff-127.f)/10.f;
       
       float yoff = vdata[3*(y*width+x)+1];
-      yoff = (yoff-128.f)/10.f;
+      yoff = (yoff-127.f)/10.f;
       
       /*if(x+xoff >= 0 && x+xoff < width && y+yoff >= 0 && y+yoff < height){
 	out[3*(y*width+x)+0] = data[3*((y+yoff)*width+x+xoff)+0];
