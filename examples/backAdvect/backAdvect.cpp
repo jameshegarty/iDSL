@@ -35,7 +35,7 @@ int main(int argc, char **argv){
 	out[3*(y*width+x)+1] = data[3*((y+yoff)*width+x+xoff)+1];
 	out[3*(y*width+x)+2] = data[3*((y+yoff)*width+x+xoff)+2];
 	}*/
-      sampleBilinear3Channels(width,height,x+xoff,y+yoff,data,&out[3*(y*width+x)]);
+      sampleBilinear3Channels(width,height,float(x)+xoff,float(y)+yoff,data,&out[3*(y*width+x)]);
     }
   }
 

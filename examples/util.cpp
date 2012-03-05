@@ -848,8 +848,20 @@ bool saveFLO(const char *filename, int width, int height, float *data){
     assert(false);//panic("problem writing header: %s", filename.c_str());
   }
 
-  fwrite(data, sizeof(float), width * height * 2, stream);
+  float *dataTemp = new float[width*height*2];
+
+  // flip row order
+  for(int x=0; x<width;x++){
+    for(int y=0; y<height; y++){
+      dataTemp[((height-y-1)*width+x)*2+0] = data[(y*width+x)*2+0];
+      dataTemp[((height-y-1)*width+x)*2+1] = data[(y*width+x)*2+1];
+    }
+  }
+
+  fwrite(dataTemp, sizeof(float), width * height * 2, stream);
   fclose(stream);
+
+  delete[] dataTemp;
 
   return true;
 }
@@ -872,16 +884,29 @@ bool loadFLO(const char *filename, int* width, int* height, float **data){
   assert(*width > 0 && *width < 999999);//, "illegal width %d", *width);
   assert(*height > 0 && *height < 999999);//, "illegal height %d", *height);
         
-  *data = new float[(*width)*(*height)*2];
+  float *dataTemp = new float[(*width)*(*height)*2];
 
   size_t n = (*width)*(*height)*2;
-  size_t lol = fread(*data, sizeof(float), n, stream);// == n);//,"Unexpected end of file\n");
+  size_t lol = fread(dataTemp, sizeof(float), n, stream);// == n);//,"Unexpected end of file\n");
   if(lol!=n){
     printf("error reading");
     return false;
   }
 
   fclose(stream);
+
+
+  *data = new float[(*width)*(*height)*2];
+
+  // flip row order
+  for(int x=0; x<(*width);x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[(((*height)-y-1)*(*width)+x)*2+0] = dataTemp[(y*(*width)+x)*2+0];
+      (*data)[(((*height)-y-1)*(*width)+x)*2+1] = dataTemp[(y*(*width)+x)*2+1];
+    }
+  }
+
+  delete[] dataTemp;
 
   return true;
 }
