@@ -6,20 +6,20 @@
 int main(int argc, char **argv){
 
   if(argc!=4){
-    printf("Usage: blur image.type vectors.type out.type\n");
+    printf("Usage: blur image.type vectors.flo out.type\n");
     return 1;
   }
 
   int width, height, channels;
   int vwidth, vheight, vchannels;
   unsigned char *data;
-  unsigned char *vdata;
+  float *vdata;
 
   loadImage(argv[1], &width, &height, &channels, &data);
   loadImage(argv[2], &vwidth, &vheight, &vchannels, &vdata);
 
   assert(channels == 3);
-  assert(vchannels == 3);
+  assert(vchannels == 2);
   assert(width==vwidth);
   assert(height==vheight);
 
@@ -27,11 +27,8 @@ int main(int argc, char **argv){
 
   for(int x=0; x < width; x++){
     for(int y=0; y < height; y++){
-      float xoff = vdata[3*(y*width+x)];
-      xoff = (xoff-127.f)/10.f;
-      
-      float yoff = vdata[3*(y*width+x)+1];
-      yoff = (yoff-127.f)/10.f;
+      float xoff = vdata[2*(y*width+x)];
+      float yoff = vdata[2*(y*width+x)+1];
       
       /*if(x+xoff >= 0 && x+xoff < width && y+yoff >= 0 && y+yoff < height){
 	out[3*(y*width+x)+0] = data[3*((y+yoff)*width+x+xoff)+0];

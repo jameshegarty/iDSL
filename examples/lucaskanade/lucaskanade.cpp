@@ -99,7 +99,7 @@ void lucaskanade(
   bool weighted,
   unsigned char* frame1in, 
   unsigned char* frame2in, 
-  unsigned char* out){
+  float* out){
   
   assert(pyramidLevels > 0);
   int border = windowRadius;
@@ -113,9 +113,8 @@ void lucaskanade(
   // zero out vectors array. 127 = 0 in our stupid fixed precision format
   for(int x = 0; x<inWidth; x++){
     for(int y = 0; y<inHeight; y++){
-      for(int c = 0; c<3; c++){
-	out[(y*inWidth+x)*3+c]= (c==2)?0:127;
-      }
+      out[(y*inWidth+x)*2+0]=0.f;
+      out[(y*inWidth+x)*2+1]=0.f;
     }
   }
 
@@ -125,7 +124,7 @@ void lucaskanade(
   float *A[4];
   for(int i=0; i<4; i++){A[i]=new float[inWidth*inHeight];}
   float *W = new float[inWidth*inHeight];
-  unsigned char *outTemp = new unsigned char[inWidth*inHeight*3];
+  float *outTemp = new float[inWidth*inHeight*2];
 
   for(int l=pyramidLevels-1; l>=0; l--){
     // calculate stuff that we will use every iteration
@@ -229,8 +228,8 @@ void lucaskanade(
 	  b[0] = 0.f;
 	  b[1] = 0.f;
 
-	  float hx = (float(out[3*(y*width+x)])-127.f)/10.f;
-	  float hy = (float(out[3*(y*width+x)+1])-127.f)/10.f;
+	  float hx = out[2*(y*width+x)+0];
+	  float hy = out[2*(y*width+x)+1];
 
 	  //	  float wsum = 0.f;
 
@@ -261,8 +260,8 @@ void lucaskanade(
 
 	  float outX = A[0][y*width+x]*(-b[0])+A[1][y*width+x]*(-b[1]); // result = Ainv * (-b)
 	  float outY = A[2][y*width+x]*(-b[0])+A[3][y*width+x]*(-b[1]);
-	  out[3*(y*width+x)]=127+(outX+hx)*10;
-	  out[3*(y*width+x)+1]=127+(outY+hy)*10;
+	  out[2*(y*width+x)]=outX+hx;
+	  out[2*(y*width+x)+1]=outY+hy;
 	}
       }
     }
@@ -279,13 +278,13 @@ void lucaskanade(
     if(l>0){
       for(int x = 0; x < width*2; x++){
 	for(int y = 0; y < height*2; y++){
-	  sampleBilinear3Channels(width,height, float(x)/2.f, float(y)/2.f, out, &outTemp[(y*width*2+x)*3]);
-          outTemp[(y*width*2+x)*3+0] = ((float(outTemp[(y*width*2+x)*3+0])-127.f)*2.f)+127.f;
-          outTemp[(y*width*2+x)*3+1] = ((float(outTemp[(y*width*2+x)*3+1])-127.f)*2.f)+127.f;
+	  sampleBilinear2Channels(width,height, float(x)/2.f, float(y)/2.f, out, &outTemp[(y*width*2+x)*2]);
+          outTemp[(y*width*2+x)*2+0] *= 2.f;
+          outTemp[(y*width*2+x)*2+1] *= 2.f;
 	}
       }
 
-      memcpy(out,outTemp,width*height*4*3);
+      memcpy(out,outTemp,width*height*4*2);
 
       /*
       sprintf(tstr,"pv_up_%d.bmp",l);
@@ -318,7 +317,7 @@ int main(int argc, char **argv){
 
   unsigned char *frame1 = new unsigned char[width*height];
   unsigned char *frame2 = new unsigned char[width*height];
-  unsigned char *out = new unsigned char[width*height*channels];
+  float *out = new float[width*height*2];
 
   toGrayscale(width,height,data,frame1);
   toGrayscale(width,height,data2,frame2);
@@ -328,7 +327,7 @@ int main(int argc, char **argv){
 
   lucaskanade(width,height,atoi(argv[4]),atoi(argv[5]),atoi(argv[6]),argc==8,frame1,frame2,out);
 
-  saveImage(argv[3], width, height, channels, out);
+  saveImage(argv[3], width, height, 2, out);
 
   delete[] frame1;
   delete[] frame2;

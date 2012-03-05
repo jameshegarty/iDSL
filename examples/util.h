@@ -12,16 +12,20 @@ const float PI = 3.1415926f;
 
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned short **data);
+bool loadImage(const char *file, int* width, int* height, int *channels, float **data);
 bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
 // scales data to be [0,1]
 bool saveImageAutoLevels(const char *file, int width, int height, int channels, float *data);
 
+bool saveBMPAutoLevels(const char *file, int width, int height, int channels, float *data);
 bool loadBMP(const char *file, int* width, int* height, int *channels, unsigned char **data);
 bool saveBMP(const char *file, int width, int height, int channels, unsigned char *data);
 bool saveBMP(const char *file, int width, int height, int channels, float *data);
+bool saveFLO(const char *file, int width, int height, float *data);
 bool loadPGM(const char *file, int* width, int* height, unsigned short **data); // return 16 bit data
+bool loadFLO(const char *file, int* width, int* height, float **data); // return 16 bit data
 bool loadPPM(const char *file, int* width, int* height, int* channels, unsigned char **data);
 bool loadTMP(const char *file, int* width, int* height, int* channels, unsigned short **data); // return 16 bit data
 
@@ -89,6 +93,12 @@ void sampleBilinear3Channels(int width, int height, float x, float y, const T* i
   out[0] = sampleBilinearLow<T,false,3,0>(width,height,x,y,in);
   out[1] = sampleBilinearLow<T,false,3,1>(width,height,x,y,in);
   out[2] = sampleBilinearLow<T,false,3,2>(width,height,x,y,in);
+}
+
+template<class T>
+void sampleBilinear2Channels(int width, int height, float x, float y, const T* in, T* out){
+  out[0] = sampleBilinearLow<T,false,2,0>(width,height,x,y,in);
+  out[1] = sampleBilinearLow<T,false,2,1>(width,height,x,y,in);
 }
 
 template<typename T>

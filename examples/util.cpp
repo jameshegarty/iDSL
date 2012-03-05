@@ -133,6 +133,17 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
     return loadPPM(filename,width,height,channels,data);
   }
 
+  printf("unknown filetype %s\n",filename);
+  return false;
+}
+
+bool loadImage(const char *filename, int* width, int* height, int *channels, float **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"flo")==0){
+    *channels = 2;
+    return loadFLO(filename,width,height,data);
+  }
 
   printf("unknown filetype %s\n",filename);
   return false;
@@ -335,6 +346,29 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
 }
 
 bool saveImage(const char *filename, int width, int height, int channels, float *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMP(filename,width,height,channels,data);
+  }else if(strcmp(ext,"flo")==0){
+    assert(channels==2);
+    return saveFLO(filename,width,height,data);
+  }
+
+  return false;
+}
+
+bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMP(filename,width,height,channels,data);
+  }
+
+  return false;
+}
+
+bool saveBMP(const char *filename, int width, int height, int channels, float *data){
   // convert float to unsigned char
 
   unsigned char *temp = new unsigned char[width*height*channels];
@@ -343,13 +377,23 @@ bool saveImage(const char *filename, int width, int height, int channels, float 
     temp[i] = (unsigned char)( ((data[i]+1.f)/2.f) * 255.f );
   }
 
-  bool res = saveImage(filename,width,height,channels,temp);
+  bool res = saveBMP(filename,width,height,channels,temp);
   delete[] temp;
 
   return res;
 }
 
 bool saveImageAutoLevels(const char *filename, int width, int height, int channels, float *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMPAutoLevels(filename,width,height,channels,data);
+  }
+
+  return false;
+}
+
+bool saveBMPAutoLevels(const char *filename, int width, int height, int channels, float *data){
   // convert float to unsigned char
 
   unsigned char *temp = new unsigned char[width*height*channels];
@@ -366,13 +410,13 @@ bool saveImageAutoLevels(const char *filename, int width, int height, int channe
     temp[i] = (unsigned char)( ((data[i]-min)/(max-min)) * 255.f );
   }
 
-  bool res = saveImage(filename,width,height,channels,temp);
+  bool res = saveBMP(filename,width,height,channels,temp);
   delete[] temp;
 
   return res;
 }
 
-bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
+bool saveBMP(const char *filename, int width, int height, int channels, unsigned char *data){
   FILE *file;
     
   // make sure the file is there.
@@ -790,3 +834,54 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   return true;
 }
 
+#define TAG_FLOAT 202021.25  // check for this when READING the file
+#define TAG_STRING "PIEH"    // use this when WRITING the file
+
+bool saveFLO(const char *filename, int width, int height, float *data){
+  FILE *stream = fopen(filename, "wb");
+  assert(stream);//, "Could not open %s", filename.c_str());
+        
+  // write the header
+  fprintf(stream, TAG_STRING);
+  if ((int)fwrite(&width,  sizeof(int), 1, stream) != 1 ||
+      (int)fwrite(&height, sizeof(int), 1, stream) != 1){
+    assert(false);//panic("problem writing header: %s", filename.c_str());
+  }
+
+  fwrite(data, sizeof(float), width * height * 2, stream);
+  fclose(stream);
+
+  return true;
+}
+
+bool loadFLO(const char *filename, int* width, int* height, float **data){
+  FILE *stream = fopen(filename, "rb");
+  assert(stream);//, "Could not open file %s\n", filename.c_str());
+
+  float tag;
+
+  if ((int)fread(&tag,    sizeof(float), 1, stream) != 1 ||
+      (int)fread(width,  sizeof(int),   1, stream) != 1 ||
+      (int)fread(height, sizeof(int),   1, stream) != 1){
+    assert(false);//panic("ReadFlowFile: problem reading file %s", filename.c_str());
+  }
+
+  assert(tag == TAG_FLOAT);//, "Wrong tag (possibly due to big-endian machine?)");
+
+  // another sanity check to see that integers were read correctly (999999 should do the trick...)
+  assert(*width > 0 && *width < 999999);//, "illegal width %d", *width);
+  assert(*height > 0 && *height < 999999);//, "illegal height %d", *height);
+        
+  *data = new float[(*width)*(*height)*2];
+
+  size_t n = (*width)*(*height)*2;
+  size_t lol = fread(*data, sizeof(float), n, stream);// == n);//,"Unexpected end of file\n");
+  if(lol!=n){
+    printf("error reading");
+    return false;
+  }
+
+  fclose(stream);
+
+  return true;
+}
