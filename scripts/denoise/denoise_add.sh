@@ -20,6 +20,8 @@ done
 
 wait
 
+cp ./temp/vectors_001.flo ./temp/vectors_001.flo.add.flo
+
 for (( i=2; i<$frames; i+=1 ))
 do
     j=`expr $i - 1`

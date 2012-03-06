@@ -843,8 +843,11 @@ bool saveFLO(const char *filename, int width, int height, float *data){
         
   // write the header
   fprintf(stream, TAG_STRING);
-  if ((int)fwrite(&width,  sizeof(int), 1, stream) != 1 ||
-      (int)fwrite(&height, sizeof(int), 1, stream) != 1){
+  if( (int)fwrite(&width,  sizeof(int), 1, stream) != 1 ){
+    assert(false);
+  }
+  
+  if( (int)fwrite(&height, sizeof(int), 1, stream) != 1 ){
     assert(false);//panic("problem writing header: %s", filename.c_str());
   }
 
@@ -872,9 +875,15 @@ bool loadFLO(const char *filename, int* width, int* height, float **data){
 
   float tag;
 
-  if ((int)fread(&tag,    sizeof(float), 1, stream) != 1 ||
-      (int)fread(width,  sizeof(int),   1, stream) != 1 ||
-      (int)fread(height, sizeof(int),   1, stream) != 1){
+  if ((int)fread(&tag,    sizeof(float), 1, stream) != 1 ){
+    assert(false);
+  }
+
+  if( (int)fread(width,  sizeof(int),   1, stream) != 1 ){
+    assert(false);
+  }
+
+  if( (int)fread(height, sizeof(int),   1, stream) != 1){
     assert(false);//panic("ReadFlowFile: problem reading file %s", filename.c_str());
   }
 
@@ -888,6 +897,7 @@ bool loadFLO(const char *filename, int* width, int* height, float **data){
 
   size_t n = (*width)*(*height)*2;
   size_t lol = fread(dataTemp, sizeof(float), n, stream);// == n);//,"Unexpected end of file\n");
+
   if(lol!=n){
     printf("error reading");
     return false;

@@ -224,6 +224,8 @@ void lucaskanade(
       
 	for(int y = 0; y < height; y++){
 
+	  //	  if( y < 100){continue;}
+
 	  float b[2]; 
 	  b[0] = 0.f;
 	  b[1] = 0.f;
@@ -241,10 +243,12 @@ void lucaskanade(
 	      float dy = sampleNearestClamped( width, height, x+wx, y+wy, Fy );
 	      float w = sampleNearestClamped( width, height, x+wx, y+wy, W );
 
+	      /*
 	      if(x+wx < 0){assert(w==0.f);}
 	      if(x+wx >width-1){assert(w==0.f);}
 	      if(y+wy < 0){assert(w==0.f);}
 	      if(y+wy >height-1){assert(w==0.f);}
+	      */
 
 	      //	      wsum += w;
 
@@ -284,7 +288,7 @@ void lucaskanade(
 	}
       }
 
-      memcpy(out,outTemp,width*height*4*2);
+      memcpy(out,outTemp,(2*width)*(2*height)*2*sizeof(float));
 
       /*
       sprintf(tstr,"pv_up_%d.bmp",l);
