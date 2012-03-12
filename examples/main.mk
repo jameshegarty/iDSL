@@ -5,7 +5,7 @@ LFLAGS := -L. -fpic -g
 OBJECTS := $(patsubst %.cpp,%.o,$(SRC))
 DEPENDENCIES := $(patsubst %.cpp,%.d,$(SRC))
 
-default: debug
+default: release
 
 debug: CXXFLAGS += -DDEBUG -O0 -g
 debug: $(EXECUTABLE)

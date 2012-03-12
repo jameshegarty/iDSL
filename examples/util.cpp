@@ -1,5 +1,6 @@
 #include "util.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "string.h"
 #include <math.h>
 #include <assert.h>
@@ -105,43 +106,6 @@ float sum(int width, int height, float *kernel){
   return s;
 }
 
-unsigned char sampleBilinear(int width, int height, float x, float y, const unsigned char* in){
-  if(x < 0.f){return 0;}
-  if(y < 0.f){return 0;}
-  if(x > float(width)){return 0;}
-  if(y > float(height)){return 0;}
-
-  int ix = x;
-  int iy = y;
-
-  float aa = in[iy*width+ix];
-  float ba = in[iy*width+ix+1];
-  float ab = in[(iy+1)*width+ix];
-  float bb = in[(iy+1)*width+ix+1];
-  float rx = x-floor(x);
-  float rxi = 1.f-rx;
-  float ry = y-floor(y);
-  float ryi = 1.f-ry; // 1-ry
-  assert(rx >= 0.f);assert(rx <=1.f);assert(rxi >=0.f);assert(rxi <= 1.f);
-  float resa = aa*rxi+ba*rx;
-  float resb = ab*rxi+bb*rx;
-
-  return (unsigned char)(resa*ryi+resb*ry);
-}
-
-unsigned char sampleNearest(int width, int height, float x, float y, const unsigned char* in){
-  if(x < 0.f){return 0;}
-  if(y < 0.f){return 0;}
-  if(x > float(width)){return 0;}
-  if(y > float(height)){return 0;}
-
-  int ix = x;
-  int iy = y;
-
-  return in[iy*width+ix];
-}
-
-
 unsigned char readPixel(int imgWidth, int imgHeight, int nChannels, 
                         int x, int y, Color colorChannel,
                         const unsigned char *data) {
@@ -169,6 +133,17 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
     return loadPPM(filename,width,height,channels,data);
   }
 
+  printf("unknown filetype %s\n",filename);
+  return false;
+}
+
+bool loadImage(const char *filename, int* width, int* height, int *channels, float **data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"flo")==0){
+    *channels = 2;
+    return loadFLO(filename,width,height,data);
+  }
 
   printf("unknown filetype %s\n",filename);
   return false;
@@ -211,7 +186,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   fseek(file, 4, SEEK_CUR);
   currentCurPos += 4;
 
-  i = fread(width, 4, 1, file);
+  if ((i = fread(width, 4, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 4;
   *width = endian(*width);
   
@@ -222,7 +201,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   }
 
   // read the height 
-  i = fread(height, 4, 1, file);
+  if ((i = fread(height, 4, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 4;
   *height = endian(*height);
     
@@ -233,7 +216,11 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
     
   // read the planes
   unsigned short planes;          // number of planes in image (must be 1) 
-  i=fread(&planes, 2, 1, file);
+  if ((i=fread(&planes, 2, 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
+
   currentCurPos += 2;
   planes=endian(planes);
   
@@ -359,22 +346,77 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
 }
 
 bool saveImage(const char *filename, int width, int height, int channels, float *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMP(filename,width,height,channels,data);
+  }else if(strcmp(ext,"flo")==0){
+    assert(channels==2);
+    return saveFLO(filename,width,height,data);
+  }
+
+  return false;
+}
+
+bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMP(filename,width,height,channels,data);
+  }
+
+  return false;
+}
+
+bool saveBMP(const char *filename, int width, int height, int channels, float *data){
   // convert float to unsigned char
 
   unsigned char *temp = new unsigned char[width*height*channels];
 
   for(int i=0; i<width*height*channels; i++){
-    //    temp[i] = (unsigned char)(data[i]*255.f);
     temp[i] = (unsigned char)( ((data[i]+1.f)/2.f) * 255.f );
   }
 
-  bool res = saveImage(filename,width,height,channels,temp);
+  bool res = saveBMP(filename,width,height,channels,temp);
   delete[] temp;
 
   return res;
 }
 
-bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
+bool saveImageAutoLevels(const char *filename, int width, int height, int channels, float *data){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"bmp")==0){
+    return saveBMPAutoLevels(filename,width,height,channels,data);
+  }
+
+  return false;
+}
+
+bool saveBMPAutoLevels(const char *filename, int width, int height, int channels, float *data){
+  // convert float to unsigned char
+
+  unsigned char *temp = new unsigned char[width*height*channels];
+
+  float max = -1000000.f;
+  float min = 1000000.f;
+
+  for(int i=0; i<width*height*channels; i++){
+    if(data[i]<min){min=data[i];}
+    if(data[i]>max){max=data[i];}
+  }
+
+  for(int i=0; i<width*height*channels; i++){
+    temp[i] = (unsigned char)( ((data[i]-min)/(max-min)) * 255.f );
+  }
+
+  bool res = saveBMP(filename,width,height,channels,temp);
+  delete[] temp;
+
+  return res;
+}
+
+bool saveBMP(const char *filename, int width, int height, int channels, unsigned char *data){
   FILE *file;
     
   // make sure the file is there.
@@ -609,19 +651,29 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
 
   char temp[16];
 
-  fgets(temp,sizeof(temp),file);
+  if(fgets(temp,sizeof(temp),file)==NULL){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"P5\n")!=0){
     printf("Error, incorrect PGM type %s\n",temp);
     return false;
   }
 
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
+
   printf(" %s\n",temp);
 
   sscanf(temp,"%d %d", width, height);
 
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"65535\n")==0){
     printf("16 bit");
@@ -635,7 +687,11 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
   *data = new unsigned short[ (*width) * (*height)];
   unsigned short *tempData = new unsigned short[ (*width) * (*height)];
 
-  fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, (*width)*(*height)*sizeof(unsigned short), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // flip endian + row order
   for(int x=0; x<(*width); x++){
@@ -657,7 +713,10 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   char temp[16];
 
   // read in type
-  fgets(temp,sizeof(temp),file); // read in up to a newline
+  if(!fgets(temp,sizeof(temp),file)){ // read in up to a newline
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"P6\n")!=0){
     printf("Error, incorrect PPM type %s\n",temp);
@@ -667,13 +726,20 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   *channels = 3; // always 3 for this type
 
   // read in width / height
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
+
   printf("%s\n",temp);
 
   sscanf(temp,"%d %d\n", width, height);
 
   // read in number of colors
-  fgets(temp,sizeof(temp),file);
+  if(!fgets(temp,sizeof(temp),file)){
+    printf("Error reading\n");
+    return false;
+  }
 
   if(strcmp(temp,"65535\n")==0){
     printf("error, this function doesn't support 16 bit\n");
@@ -689,7 +755,11 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   *data = new unsigned char[ (*width) * (*height) * (*channels)];
   unsigned char *tempData = new unsigned char[ (*width) * (*height) * (*channels)];
 
-  fread(tempData, (*width)*(*height)*(*channels)*sizeof(unsigned char), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, (*width)*(*height)*(*channels)*sizeof(unsigned char), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // flip row order
   for(int c=0; c<(*channels); c++){
@@ -718,6 +788,12 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
     int frames, width, height, channels, typeCode;
   } h;
 
+  h.frames = 0;
+  h.width = 0;
+  h.height = 0;
+  h.channels = 0;
+  h.typeCode = 0;
+
   assert(fread(&h, sizeof(int), 5, file) == 5);
   //	 "File ended before end of header\n");
 
@@ -740,7 +816,11 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   *data = new unsigned short[size];
   float *tempData = new float[size];
 
-  fread(tempData, size*sizeof(float), 1, file);
+  int i = 0;
+  if ((i = fread(tempData, size*sizeof(float), 1, file)) != 1) {
+    printf("Error reading file\n");
+    return false;
+  }
 
   // convert to short & flip y
   for(int x=0; x<(*width); x++){
@@ -754,3 +834,79 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   return true;
 }
 
+#define TAG_FLOAT 202021.25  // check for this when READING the file
+#define TAG_STRING "PIEH"    // use this when WRITING the file
+
+bool saveFLO(const char *filename, int width, int height, float *data){
+  FILE *stream = fopen(filename, "wb");
+  assert(stream);//, "Could not open %s", filename.c_str());
+        
+  // write the header
+  fprintf(stream, TAG_STRING);
+  if ((int)fwrite(&width,  sizeof(int), 1, stream) != 1 ||
+      (int)fwrite(&height, sizeof(int), 1, stream) != 1){
+    assert(false);//panic("problem writing header: %s", filename.c_str());
+  }
+
+  float *dataTemp = new float[width*height*2];
+
+  // flip row order
+  for(int x=0; x<width;x++){
+    for(int y=0; y<height; y++){
+      dataTemp[((height-y-1)*width+x)*2+0] = data[(y*width+x)*2+0];
+      dataTemp[((height-y-1)*width+x)*2+1] = data[(y*width+x)*2+1];
+    }
+  }
+
+  fwrite(dataTemp, sizeof(float), width * height * 2, stream);
+  fclose(stream);
+
+  delete[] dataTemp;
+
+  return true;
+}
+
+bool loadFLO(const char *filename, int* width, int* height, float **data){
+  FILE *stream = fopen(filename, "rb");
+  assert(stream);//, "Could not open file %s\n", filename.c_str());
+
+  float tag;
+
+  if ((int)fread(&tag,    sizeof(float), 1, stream) != 1 ||
+      (int)fread(width,  sizeof(int),   1, stream) != 1 ||
+      (int)fread(height, sizeof(int),   1, stream) != 1){
+    assert(false);//panic("ReadFlowFile: problem reading file %s", filename.c_str());
+  }
+
+  assert(tag == TAG_FLOAT);//, "Wrong tag (possibly due to big-endian machine?)");
+
+  // another sanity check to see that integers were read correctly (999999 should do the trick...)
+  assert(*width > 0 && *width < 999999);//, "illegal width %d", *width);
+  assert(*height > 0 && *height < 999999);//, "illegal height %d", *height);
+        
+  float *dataTemp = new float[(*width)*(*height)*2];
+
+  size_t n = (*width)*(*height)*2;
+  size_t lol = fread(dataTemp, sizeof(float), n, stream);// == n);//,"Unexpected end of file\n");
+  if(lol!=n){
+    printf("error reading");
+    return false;
+  }
+
+  fclose(stream);
+
+
+  *data = new float[(*width)*(*height)*2];
+
+  // flip row order
+  for(int x=0; x<(*width);x++){
+    for(int y=0; y<(*height); y++){
+      (*data)[(((*height)-y-1)*(*width)+x)*2+0] = dataTemp[(y*(*width)+x)*2+0];
+      (*data)[(((*height)-y-1)*(*width)+x)*2+1] = dataTemp[(y*(*width)+x)*2+1];
+    }
+  }
+
+  delete[] dataTemp;
+
+  return true;
+}

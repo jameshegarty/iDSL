@@ -1,6 +1,7 @@
 #include "../util.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 void ofBrute(
@@ -63,8 +64,8 @@ void ofBrute(
 
 int main(int argc, char **argv){
 
-  if(argc!=5){
-    printf("Usage: motionestimation frame1.type frame2.type searchWindowRadius diffWindowRadius\n");
+  if(argc!=6){
+    printf("Usage: motionestimation frame1.type frame2.type output.bmp searchWindowRadius diffWindowRadius\n");
     return 1;
   }
 
@@ -73,8 +74,15 @@ int main(int argc, char **argv){
   unsigned char *data;
   unsigned char *data2;
 
-  loadImage(argv[1], &width, &height, &channels, &data);
-  loadImage(argv[2], &width2, &height2, &channels2, &data2);
+  if(!loadImage(argv[1], &width, &height, &channels, &data)){
+    printf("Error loading image\n");
+    return 1;
+  }
+
+  if(!loadImage(argv[2], &width2, &height2, &channels2, &data2)){
+    printf("Error loading image\n");
+    return 1;
+  }
 
   assert(width==width2);
   assert(height==height2);
@@ -94,9 +102,9 @@ int main(int argc, char **argv){
   // zero out vectors array
   for(int i=0; i<width*height*channels; i++){out[i]=0;}
 
-  ofBrute(width,height,atoi(argv[3]),atoi(argv[4]),frame1,frame2,out);
+  ofBrute(width,height,atoi(argv[4]),atoi(argv[5]),frame1,frame2,out);
 
-  saveImage("vectors.bmp", width, height, channels, out);
+  saveImage(argv[3], width, height, channels, out);
 
   delete[] frame1;
   delete[] frame2;
