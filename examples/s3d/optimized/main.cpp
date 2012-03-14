@@ -9,7 +9,7 @@
 
 #include "constants.h"
 #include "hypterm.h"
-//#include "hypterm_ispc.h"
+#include "hypterm_ispc.h"
 
 void init(int *n,int *ng,double *dx,int nspec,double *cons,double *pres){
     double scale[3]={0.02,0.02,0.02};
@@ -76,7 +76,8 @@ int main(int argc,char **argv){
     int nspec=9;
     double dx[3]={1e-3,1e-3,1e-3};
     
-    int n[3]={256,256,256};
+    int n0[3]={0,0,0};
+    int n[3]={64,64,64};
     int ng[3]={4,4,4};
 
     double *pres=new double[(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0])];
@@ -84,102 +85,15 @@ int main(int argc,char **argv){
     double *flux=new double[n[2]*n[1]*n[0]*(nspec+5)];
     double *fluxmag=new double[nspec+5];
 
-    timespec start_threaded;
     timespec start_serial;
     timespec start_ispc;
-    timespec start_threaded_ispc;
-    timespec end_threaded;
     timespec end_serial;
     timespec end_ispc;
-    timespec end_threaded_ispc;
     init(n,ng,dx,nspec,cons,pres);
     
-    ////THREADED
-    //for(int m=0;m<n[2]*n[1]*n[0]*(nspec+5);m++){
-    //    flux[m]=0.0;
-    //}
-    //for(int m=0;m<nspec+5;m++){
-    //    fluxmag[m]=0.0;
-    //}
-    //clock_gettime(CLOCK_REALTIME,&start_threaded);
-    //pthread_t threads[numthreads];
-    //struct thread_data thread_data_array[numthreads];
-    //void *status;
-    //std::stringstream thread_init_ss;
-    //thread_init_ss << "Creating threads:";
-    //for(int t=0;t<numthreads;t++){
-    //    thread_data_array[t].thread_id=t;
-    //    thread_data_array[t].n0=n[0];
-    //    thread_data_array[t].n1=n[1];
-    //    thread_data_array[t].n2=n[2];
-    //    //thread_data_array[t].n0s=(t%4)*(n[0]/4);
-    //    //thread_data_array[t].n1s=((t/4)%4)*(n[1]/4);
-    //    //thread_data_array[t].n2s=((t/16)%2)*(n[2]/2);
-    //    //thread_data_array[t].n0e=((t%4)+1)*(n[0]/4);
-    //    //thread_data_array[t].n1e=(((t/4)%4)+1)*(n[1]/4);
-    //    //thread_data_array[t].n2e=(((t/16)%2)+1)*(n[2]/2);
-    //    thread_data_array[t].n0s=0;
-    //    thread_data_array[t].n1s=0;
-    //    thread_data_array[t].n2s=0;
-    //    thread_data_array[t].n0e=n[0];
-    //    thread_data_array[t].n1e=n[1];
-    //    thread_data_array[t].n2e=n[2];
-    //    thread_data_array[t].ng0=ng[0];
-    //    thread_data_array[t].ng1=ng[1];
-    //    thread_data_array[t].ng2=ng[2];
-    //    thread_data_array[t].dx0=dx[0];
-    //    thread_data_array[t].dx1=dx[1];
-    //    thread_data_array[t].dx2=dx[2];
-    //    thread_data_array[t].nspec=nspec;
-    //    thread_data_array[t].pres=pres;
-    //    thread_data_array[t].cons=cons;
-    //    thread_data_array[t].flux=flux;
-    //    thread_data_array[t].blocksize=blocksize;
-    //    thread_init_ss << " " << t;
-    //    int rc=pthread_create(&threads[t],NULL,hypterm_threaded,(void*)&thread_data_array[t]);
-    //    if(rc){
-    //        std::cout << "ERROR; return code from pthread_create() is " << rc << std::endl;
-    //        exit(EXIT_FAILURE);
-    //    }
-    //}
-    //std::cout << thread_init_ss.str() << std::endl;
-    //
-    //for(int t=0;t<numthreads;t++){
-    //    pthread_join(threads[t],&status);
-    //}
-    //clock_gettime(CLOCK_REALTIME,&end_threaded);
-    //timespec diff_threaded;
-    //diff_threaded.tv_sec=end_threaded.tv_sec-start_threaded.tv_sec;
-    //diff_threaded.tv_nsec=end_threaded.tv_nsec-start_threaded.tv_nsec;
-    //std::cout << "Threaded Code Runtime: " << ((double)diff_threaded.tv_sec + ((double)diff_threaded.tv_nsec/1E9)) << std::endl;
-    //for(int k=0;k<n[2];k++){
-    //    for(int j=0;j<n[1];j++){
-    //        for(int i=0;i<n[0];i++){
-    //            for(int ns=0;ns<nspec+5;ns++){
-    //                double fluxelement=flux[k*n[1]*n[0]*(nspec+5)+j*n[0]*(nspec+5)+i*(nspec+5)+ns];
-    //                fluxmag[ns]+=fluxelement*fluxelement;
-    //            }
-    //        }
-    //    }
-    //}
-    //for(int ns=0;ns<nspec+5;ns++){
-    //    std::cout<<"threaded: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
-    //}
     int z4d_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(nspec+5);
     int y4d_offset=(n[1]+2*ng[1])*(nspec+5);
     int x4d_offset=(nspec+5);
-
-    //for(int k=0;k<n[2]+2*ng[2];k++){
-    //    for(int j=0;j<n[1]+2*ng[1];j++){
-    //        for(int i=0;i<n[0]+2*ng[0];i++){
-    //            for(int ns=0;ns<nspec+5;ns++){
-    //                int ijk4d=k*z4d_offset+j*y4d_offset+i*x4d_offset;
-    //                std::cout << std::showpos << std::scientific << std::setprecision(4) << cons[ijk4d+ns] << " ";
-    //            }
-    //            std::cout << std::endl;
-    //        }
-    //    }
-    //}
 
     //SERIAL
     for(int m=0;m<n[2]*n[1]*n[0]*(nspec+5);m++){
@@ -189,7 +103,6 @@ int main(int argc,char **argv){
         fluxmag[m]=0.0;
     }
     clock_gettime(CLOCK_REALTIME,&start_serial);
-    int n0[3]={0,0,0};
     hypterm_serial(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksize);
     clock_gettime(CLOCK_REALTIME,&end_serial);
     timespec diff_serial;
@@ -210,14 +123,38 @@ int main(int argc,char **argv){
         std::cout<<"serial: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
     }
 
+    //SERIAL ISPC
+    for(int m=0;m<n[2]*n[1]*n[0]*(nspec+5);m++){
+        flux[m]=0.0;
+    }   
+    for(int m=0;m<nspec+5;m++){
+        fluxmag[m]=0.0;
+    }
+    clock_gettime(CLOCK_REALTIME,&start_ispc);
+    ispc::hypterm_ispc(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksize);
+    clock_gettime(CLOCK_REALTIME,&end_ispc);
+    timespec diff_ispc;
+    diff_ispc.tv_sec=end_ispc.tv_sec-start_ispc.tv_sec;
+    diff_ispc.tv_nsec=end_ispc.tv_nsec-start_ispc.tv_nsec;
+    std::cout << "ispc Code Runtime: " << ((double)diff_ispc.tv_sec + ((double)diff_ispc.tv_nsec/1E9)) << std::endl;
+    for(int k=0;k<n[2];k++){
+        for(int j=0;j<n[1];j++){
+            for(int i=0;i<n[0];i++){
+                for(int ns=0;ns<nspec+5;ns++){
+                    double fluxelement=flux[k*n[1]*n[0]*(nspec+5)+j*n[0]*(nspec+5)+i*(nspec+5)+ns];
+                    fluxmag[ns]+=fluxelement*fluxelement;
+                }
+            }
+        }
+    }
+    for(int ns=0;ns<nspec+5;ns++){
+        std::cout<<"ispc: component, fluxmag "<<ns<<" "<<std::setprecision(16)<<fluxmag[ns]<<std::endl;
+    }
+
     delete[] pres;
-    std::cout << "after delete pres" << std::endl;
     delete[] cons;
-    std::cout << "after delete cons" << std::endl;
     delete[] flux;
-    std::cout << "after delete flux" << std::endl;
     delete[] fluxmag;
-    std::cout << "after delete fluxmag" << std::endl;
     
     //pthread_exit(NULL);
     return EXIT_SUCCESS;

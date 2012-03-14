@@ -1,6 +1,4 @@
-#include <iostream>
 #include "hypterm.h"
-//#include "hypterm_ispc.h"
 
 void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *cons,double *pres,double *flux,int blocksize){
     int z4d_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(nspec+5);
@@ -29,6 +27,17 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         int im3jk=k*z4d_offset+j*y4d_offset+(i-3)*x4d_offset;
                         int im4jk=k*z4d_offset+j*y4d_offset+(i-4)*x4d_offset;
 
+                        int presip1jk=k*z3d_offset+j*y3d_offset+(i+1)*x3d_offset;
+                        int presip2jk=k*z3d_offset+j*y3d_offset+(i+2)*x3d_offset;
+                        int presip3jk=k*z3d_offset+j*y3d_offset+(i+3)*x3d_offset;
+                        int presip4jk=k*z3d_offset+j*y3d_offset+(i+4)*x3d_offset;
+
+                        int presim1jk=k*z3d_offset+j*y3d_offset+(i-1)*x3d_offset;
+                        int presim2jk=k*z3d_offset+j*y3d_offset+(i-2)*x3d_offset;
+                        int presim3jk=k*z3d_offset+j*y3d_offset+(i-3)*x3d_offset;
+                        int presim4jk=k*z3d_offset+j*y3d_offset+(i-4)*x3d_offset;
+
+
                         double unp1=cons[ip1jk+I_MX]/cons[ip1jk+I_RHO];
                         double unp2=cons[ip2jk+I_MX]/cons[ip2jk+I_RHO];
                         double unp3=cons[ip3jk+I_MX]/cons[ip3jk+I_RHO];
@@ -46,10 +55,10 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         +DELTA*(cons[ip4jk+I_MX]-cons[im4jk+I_MX]))/dx[0];
                         
                         flux[fijk+I_MX]-=
-                        (ALPHA*(cons[ip1jk+I_MX]*unp1-cons[im1jk+I_MX]*unm1+(pres[ip1jk/(nspec+5)]-pres[im1jk/(nspec+5)]))
-                        +BETA *(cons[ip2jk+I_MX]*unp2-cons[im2jk+I_MX]*unm2+(pres[ip2jk/(nspec+5)]-pres[im2jk/(nspec+5)]))
-                        +GAMMA*(cons[ip3jk+I_MX]*unp3-cons[im3jk+I_MX]*unm3+(pres[ip3jk/(nspec+5)]-pres[im3jk/(nspec+5)]))
-                        +DELTA*(cons[ip4jk+I_MX]*unp4-cons[im4jk+I_MX]*unm4+(pres[ip4jk/(nspec+5)]-pres[im4jk/(nspec+5)])))/dx[0];
+                        (ALPHA*(cons[ip1jk+I_MX]*unp1-cons[im1jk+I_MX]*unm1+(pres[presip1jk]-pres[presim1jk]))
+                        +BETA *(cons[ip2jk+I_MX]*unp2-cons[im2jk+I_MX]*unm2+(pres[presip2jk]-pres[presim2jk]))
+                        +GAMMA*(cons[ip3jk+I_MX]*unp3-cons[im3jk+I_MX]*unm3+(pres[presip3jk]-pres[presim3jk]))
+                        +DELTA*(cons[ip4jk+I_MX]*unp4-cons[im4jk+I_MX]*unm4+(pres[presip4jk]-pres[presim4jk])))/dx[0];
 
                         flux[fijk+I_MY]-=
                         (ALPHA*(cons[ip1jk+I_MY]*unp1-cons[im1jk+I_MY]*unm1)
@@ -64,10 +73,10 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         +DELTA*(cons[ip4jk+I_MZ]*unp4-cons[im4jk+I_MZ]*unm4))/dx[0];
 
                         flux[fijk+I_ENE]-=
-                        (ALPHA*(cons[ip1jk+I_ENE]*unp1-cons[im1jk+I_ENE]*unm1+(pres[ip1jk/(nspec+5)]*unp1-pres[im1jk/(nspec+5)]*unm1))
-                        +BETA *(cons[ip2jk+I_ENE]*unp2-cons[im2jk+I_ENE]*unm2+(pres[ip2jk/(nspec+5)]*unp2-pres[im2jk/(nspec+5)]*unm2))
-                        +GAMMA*(cons[ip3jk+I_ENE]*unp3-cons[im3jk+I_ENE]*unm3+(pres[ip3jk/(nspec+5)]*unp3-pres[im3jk/(nspec+5)]*unm3))
-                        +DELTA*(cons[ip4jk+I_ENE]*unp4-cons[im4jk+I_ENE]*unm4+(pres[ip4jk/(nspec+5)]*unp4-pres[im4jk/(nspec+5)]*unm4)))/dx[0];
+                        (ALPHA*(cons[ip1jk+I_ENE]*unp1-cons[im1jk+I_ENE]*unm1+(pres[presip1jk]*unp1-pres[presim1jk]*unm1))
+                        +BETA *(cons[ip2jk+I_ENE]*unp2-cons[im2jk+I_ENE]*unm2+(pres[presip2jk]*unp2-pres[presim2jk]*unm2))
+                        +GAMMA*(cons[ip3jk+I_ENE]*unp3-cons[im3jk+I_ENE]*unm3+(pres[presip3jk]*unp3-pres[presim3jk]*unm3))
+                        +DELTA*(cons[ip4jk+I_ENE]*unp4-cons[im4jk+I_ENE]*unm4+(pres[presip4jk]*unp4-pres[presim4jk]*unm4)))/dx[0];
                         
                         for(int nsp=I_SP;nsp<nspec+5;nsp++){
                             flux[fijk+nsp]-=
@@ -86,6 +95,16 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         int ijm2k=k*z4d_offset+(j-2)*y4d_offset+i*x4d_offset;
                         int ijm3k=k*z4d_offset+(j-3)*y4d_offset+i*x4d_offset;
                         int ijm4k=k*z4d_offset+(j-4)*y4d_offset+i*x4d_offset;
+
+                        int presijp1k=k*z3d_offset+(j+1)*y3d_offset+i*x3d_offset;
+                        int presijp2k=k*z3d_offset+(j+2)*y3d_offset+i*x3d_offset;
+                        int presijp3k=k*z3d_offset+(j+3)*y3d_offset+i*x3d_offset;
+                        int presijp4k=k*z3d_offset+(j+4)*y3d_offset+i*x3d_offset;
+                        
+                        int presijm1k=k*z3d_offset+(j-1)*y3d_offset+i*x3d_offset;
+                        int presijm2k=k*z3d_offset+(j-2)*y3d_offset+i*x3d_offset;
+                        int presijm3k=k*z3d_offset+(j-3)*y3d_offset+i*x3d_offset;
+                        int presijm4k=k*z3d_offset+(j-4)*y3d_offset+i*x3d_offset;
 
                         unp1 = cons[ijp1k+I_MY]/cons[ijp1k+I_RHO];
                         unp2 = cons[ijp2k+I_MY]/cons[ijp2k+I_RHO];
@@ -110,10 +129,10 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         +DELTA*(cons[ijp4k+I_MX]*unp4-cons[ijm4k+I_MX]*unm4))/dx[1];
 
                         flux[fijk+I_MY]-=
-                        (ALPHA*(cons[ijp1k+I_MY]*unp1-cons[ijm1k+I_MY]*unm1+(pres[ijp1k/(nspec+5)]-pres[ijm1k/(nspec+5)]))
-                        +BETA *(cons[ijp2k+I_MY]*unp2-cons[ijm2k+I_MY]*unm2+(pres[ijp2k/(nspec+5)]-pres[ijm2k/(nspec+5)]))
-                        +GAMMA*(cons[ijp3k+I_MY]*unp3-cons[ijm3k+I_MY]*unm3+(pres[ijp3k/(nspec+5)]-pres[ijm3k/(nspec+5)]))
-                        +DELTA*(cons[ijp4k+I_MY]*unp4-cons[ijm4k+I_MY]*unm4+(pres[ijp4k/(nspec+5)]-pres[ijm4k/(nspec+5)])))/dx[1];
+                        (ALPHA*(cons[ijp1k+I_MY]*unp1-cons[ijm1k+I_MY]*unm1+(pres[presijp1k]-pres[presijm1k]))
+                        +BETA *(cons[ijp2k+I_MY]*unp2-cons[ijm2k+I_MY]*unm2+(pres[presijp2k]-pres[presijm2k]))
+                        +GAMMA*(cons[ijp3k+I_MY]*unp3-cons[ijm3k+I_MY]*unm3+(pres[presijp3k]-pres[presijm3k]))
+                        +DELTA*(cons[ijp4k+I_MY]*unp4-cons[ijm4k+I_MY]*unm4+(pres[presijp4k]-pres[presijm4k])))/dx[1];
 
                         flux[fijk+I_MZ]-=
                         (ALPHA*(cons[ijp1k+I_MZ]*unp1-cons[ijm1k+I_MZ]*unm1)
@@ -122,10 +141,10 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         +DELTA*(cons[ijp4k+I_MZ]*unp4-cons[ijm4k+I_MZ]*unm4))/dx[1];
 
                         flux[fijk+I_ENE]-=
-                        (ALPHA*(cons[ijp1k+I_ENE]*unp1-cons[ijm1k+I_ENE]*unm1+(pres[ijp1k/(nspec+5)]*unp1-pres[ijm1k/(nspec+5)]*unm1))
-                        +BETA *(cons[ijp2k+I_ENE]*unp2-cons[ijm2k+I_ENE]*unm2+(pres[ijp2k/(nspec+5)]*unp2-pres[ijm2k/(nspec+5)]*unm2))
-                        +GAMMA*(cons[ijp3k+I_ENE]*unp3-cons[ijm3k+I_ENE]*unm3+(pres[ijp3k/(nspec+5)]*unp3-pres[ijm3k/(nspec+5)]*unm3))
-                        +DELTA*(cons[ijp4k+I_ENE]*unp4-cons[ijm4k+I_ENE]*unm4+(pres[ijp4k/(nspec+5)]*unp4-pres[ijm4k/(nspec+5)]*unm4)))/dx[1];
+                        (ALPHA*(cons[ijp1k+I_ENE]*unp1-cons[ijm1k+I_ENE]*unm1+(pres[presijp1k]*unp1-pres[presijm1k]*unm1))
+                        +BETA *(cons[ijp2k+I_ENE]*unp2-cons[ijm2k+I_ENE]*unm2+(pres[presijp2k]*unp2-pres[presijm2k]*unm2))
+                        +GAMMA*(cons[ijp3k+I_ENE]*unp3-cons[ijm3k+I_ENE]*unm3+(pres[presijp3k]*unp3-pres[presijm3k]*unm3))
+                        +DELTA*(cons[ijp4k+I_ENE]*unp4-cons[ijm4k+I_ENE]*unm4+(pres[presijp4k]*unp4-pres[presijm4k]*unm4)))/dx[1];
 
                         for(int nsp=I_SP;nsp<nspec+5;nsp++){
                            flux[fijk+nsp]-=
@@ -144,6 +163,16 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         int ijkm2=(k-2)*z4d_offset+j*y4d_offset+i*x4d_offset;
                         int ijkm3=(k-3)*z4d_offset+j*y4d_offset+i*x4d_offset;
                         int ijkm4=(k-4)*z4d_offset+j*y4d_offset+i*x4d_offset;
+
+                        int presijkp1=(k+1)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkp2=(k+2)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkp3=(k+3)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkp4=(k+4)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        
+                        int presijkm1=(k-1)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkm2=(k-2)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkm3=(k-3)*z3d_offset+j*y3d_offset+i*x3d_offset;
+                        int presijkm4=(k-4)*z3d_offset+j*y3d_offset+i*x3d_offset;
                         
                         unp1 = cons[ijkp1+I_MZ]/cons[ijkp1+I_RHO];
                         unp2 = cons[ijkp2+I_MZ]/cons[ijkp2+I_RHO];
@@ -174,16 +203,16 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
                         +DELTA*(cons[ijkp4+I_MY]*unp4-cons[ijkm4+I_MY]*unm4))/dx[2];
 
                         flux[fijk+I_MZ]-=
-                        (ALPHA*(cons[ijkp1+I_MZ]*unp1-cons[ijkm1+I_MZ]*unm1+(pres[ijkp1/(nspec+5)]-pres[ijkm1/(nspec+5)]))
-                        +BETA *(cons[ijkp2+I_MZ]*unp2-cons[ijkm2+I_MZ]*unm2+(pres[ijkp2/(nspec+5)]-pres[ijkm2/(nspec+5)]))
-                        +GAMMA*(cons[ijkp3+I_MZ]*unp3-cons[ijkm3+I_MZ]*unm3+(pres[ijkp3/(nspec+5)]-pres[ijkm3/(nspec+5)]))
-                        +DELTA*(cons[ijkp4+I_MZ]*unp4-cons[ijkm4+I_MZ]*unm4+(pres[ijkp4/(nspec+5)]-pres[ijkm4/(nspec+5)])))/dx[2];
+                        (ALPHA*(cons[ijkp1+I_MZ]*unp1-cons[ijkm1+I_MZ]*unm1+(pres[presijkp1]-pres[presijkm1]))
+                        +BETA *(cons[ijkp2+I_MZ]*unp2-cons[ijkm2+I_MZ]*unm2+(pres[presijkp2]-pres[presijkm2]))
+                        +GAMMA*(cons[ijkp3+I_MZ]*unp3-cons[ijkm3+I_MZ]*unm3+(pres[presijkp3]-pres[presijkm3]))
+                        +DELTA*(cons[ijkp4+I_MZ]*unp4-cons[ijkm4+I_MZ]*unm4+(pres[presijkp4]-pres[presijkm4])))/dx[2];
 
                         flux[fijk+I_ENE]-=
-                        (ALPHA*(cons[ijkp1+I_ENE]*unp1-cons[ijkm1+I_ENE]*unm1+(pres[ijkp1/(nspec+5)]*unp1-pres[ijkm1/(nspec+5)]*unm1))
-                        +BETA *(cons[ijkp2+I_ENE]*unp2-cons[ijkm2+I_ENE]*unm2+(pres[ijkp2/(nspec+5)]*unp2-pres[ijkm2/(nspec+5)]*unm2))
-                        +GAMMA*(cons[ijkp3+I_ENE]*unp3-cons[ijkm3+I_ENE]*unm3+(pres[ijkp3/(nspec+5)]*unp3-pres[ijkm3/(nspec+5)]*unm3))
-                        +DELTA*(cons[ijkp4+I_ENE]*unp4-cons[ijkm4+I_ENE]*unm4+(pres[ijkp4/(nspec+5)]*unp4-pres[ijkm4/(nspec+5)]*unm4)))/dx[2];
+                        (ALPHA*(cons[ijkp1+I_ENE]*unp1-cons[ijkm1+I_ENE]*unm1+(pres[presijkp1]*unp1-pres[presijkm1]*unm1))
+                        +BETA *(cons[ijkp2+I_ENE]*unp2-cons[ijkm2+I_ENE]*unm2+(pres[presijkp2]*unp2-pres[presijkm2]*unm2))
+                        +GAMMA*(cons[ijkp3+I_ENE]*unp3-cons[ijkm3+I_ENE]*unm3+(pres[presijkp3]*unp3-pres[presijkm3]*unm3))
+                        +DELTA*(cons[ijkp4+I_ENE]*unp4-cons[ijkm4+I_ENE]*unm4+(pres[presijkp4]*unp4-pres[presijkm4]*unm4)))/dx[2];
 
                         for(int nsp=I_SP;nsp<nspec+5;nsp++){
                            flux[fijk+nsp]-=
@@ -198,38 +227,3 @@ void hypterm_serial(int *n,int *ns,int *ne,int *ng,double *dx,int nspec,double *
         }
     }
 }
-
-
-void *hypterm_threaded(void *threadarg){
-    struct thread_data *calc_params = (struct thread_data *) threadarg;
-    int thread_id = calc_params->thread_id;
-    int n[3]={calc_params->n0,calc_params->n1,calc_params->n2};
-    int ns[3]={calc_params->n0s,calc_params->n1s,calc_params->n2s};
-    int ne[3]={calc_params->n0e,calc_params->n1e,calc_params->n2e};
-    int ng[3]={calc_params->ng0,calc_params->ng1,calc_params->ng2};
-    double dx[3]={calc_params->dx0,calc_params->dx1,calc_params->dx2};
-    int blocksize=calc_params->blocksize;
-
-    int nspec=calc_params->nspec;
-    double *pres=calc_params->pres;
-    double *cons=calc_params->cons;
-    double *flux=calc_params->flux;
-    hypterm_serial(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
-}
-
-//void *hypterm_threaded_ispc(void *threadarg){
-//    struct thread_data *calc_params = (struct thread_data *) threadarg;
-//    int thread_id = calc_params->thread_id;
-//    int n[3]={calc_params->n0,calc_params->n1,calc_params->n2};
-//    int ns[3]={calc_params->n0s,calc_params->n1s,calc_params->n2s};
-//    int ne[3]={calc_params->n0e,calc_params->n1e,calc_params->n2e};
-//    int ng[3]={calc_params->ng0,calc_params->ng1,calc_params->ng2};
-//    double dx[3]={calc_params->dx0,calc_params->dx1,calc_params->dx2};
-//    int blocksize=calc_params->blocksize;
-//
-//    int nspec=calc_params->nspec;
-//    double *pres=calc_params->pres;
-//    double *cons=calc_params->cons;
-//    double *flux=calc_params->flux;
-//    ispc::hypterm_ispc(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
-//}
