@@ -13,15 +13,13 @@
 
 void init(int *n,int *ng,double *dx,int nspec,double *cons,double *pres){
     double scale[3]={0.02,0.02,0.02};
-    int cons_length=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0])*(nspec+5);
+    int cons_length=(nspec+5)*(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0]);
     int pres_length=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0]);
-    int z4d_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(nspec+5);
-    int y4d_offset=(n[1]+2*ng[1])*(nspec+5);
-    int x4d_offset=(nspec+5);
-    int s4d_offset=1;
-    int z3d_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1]);
-    int y3d_offset=(n[1]+2*ng[1]);
-    int x3d_offset=1;
+    
+    int s_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0]);
+    int z_offset=(n[1]+2*ng[1])*(n[0]+2*ng[0]);
+    int y_offset=(n[0]+2*ng[0]);
+    int x_offset=1;
 
     for(int m=0;m<cons_length;m++){
         cons[m]=0.0;
@@ -43,26 +41,26 @@ void init(int *n,int *ng,double *dx,int nspec,double *cons,double *pres){
                 double rholoc=1e-3+1e-5*sin(xloc)*cos(2.0*yloc)*cos(3.0*zloc);
                 double ploc=1e6+1e-3*sin(2.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
                 
-                int ijk4d=k*z4d_offset+j*y4d_offset+i*x4d_offset;
-                int ijk3d=k*z3d_offset+j*y3d_offset+i*x3d_offset;
-                cons[ijk4d+I_RHO]=rholoc;
-                cons[ijk4d+I_MX]=rholoc*uvel;
-                cons[ijk4d+I_MY]=rholoc*vvel;
-                cons[ijk4d+I_MZ]=rholoc*wvel;
-                cons[ijk4d+I_ENE]=ploc/0.4+rholoc*(uvel*uvel+vvel*vvel+wvel*wvel)/2.0;
+                int ijk=k*z_offset+j*y_offset+i*x_offset;
 
-                pres[ijk3d]=ploc;
+                cons[ijk+s_offset*I_RHO]=rholoc;
+                cons[ijk+s_offset*I_MX]=rholoc*uvel;
+                cons[ijk+s_offset*I_MY]=rholoc*vvel;
+                cons[ijk+s_offset*I_MZ]=rholoc*wvel;
+                cons[ijk+s_offset*I_ENE]=ploc/0.4+rholoc*(uvel*uvel+vvel*vvel+wvel*wvel)/2.0;
 
-                cons[ijk4d+I_SP]=0.2+0.1*uvel;
-                cons[ijk4d+I_SP+1]=0.2+0.05*vvel;
-                cons[ijk4d+I_SP+2]=0.2+0.03*wvel;
-                cons[ijk4d+I_SP+3]=1.0-cons[ijk4d+I_SP]-cons[ijk4d+I_SP+1]-cons[ijk4d+I_SP+2];
+                pres[ijk]=ploc;
+
+                cons[ijk+s_offset*I_SP]=0.2+0.1*uvel;
+                cons[ijk+s_offset*(I_SP+1)]=0.2+0.05*vvel;
+                cons[ijk+s_offset*(I_SP+2)]=0.2+0.03*wvel;
+                cons[ijk+s_offset*(I_SP+3)]=1.0-cons[ijk+s_offset*I_SP]-cons[ijk+s_offset*(I_SP+1)]-cons[ijk+s_offset*(I_SP+2)];
             }
         }
     }
 }
 
-int main(int argc,char **argv){
+int main(int argc,const char **argv){
     if(argc < 3){
         std::cout << "Usage: <executable> <number_of_threads> <blocksize>" << std::endl;
         exit(EXIT_FAILURE);
@@ -81,8 +79,8 @@ int main(int argc,char **argv){
     int ng[3]={4,4,4};
 
     double *pres=new double[(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0])];
-    double *cons=new double[(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0])*(nspec+5)];
-    double *flux=new double[n[2]*n[1]*n[0]*(nspec+5)];
+    double *cons=new double[(nspec+5)*(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0])];
+    double *flux=new double[(nspec+5)*n[2]*n[1]*n[0]];
     double *fluxmag=new double[nspec+5];
 
     timespec start_serial;
@@ -91,9 +89,10 @@ int main(int argc,char **argv){
     timespec end_ispc;
     init(n,ng,dx,nspec,cons,pres);
     
-    int z4d_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(nspec+5);
-    int y4d_offset=(n[1]+2*ng[1])*(nspec+5);
-    int x4d_offset=(nspec+5);
+    int s_offset=(n[2]+2*ng[2])*(n[1]+2*ng[1])*(n[0]+2*ng[0]);
+    int z_offset=(n[1]+2*ng[1])*(n[0]+2*ng[0]);
+    int y_offset=(n[0]+2*ng[0]);
+    int x_offset=1;
 
     //SERIAL
     for(int m=0;m<n[2]*n[1]*n[0]*(nspec+5);m++){
@@ -109,11 +108,11 @@ int main(int argc,char **argv){
     diff_serial.tv_sec=end_serial.tv_sec-start_serial.tv_sec;
     diff_serial.tv_nsec=end_serial.tv_nsec-start_serial.tv_nsec;
     std::cout << "Serial Code Runtime: " << ((double)diff_serial.tv_sec + ((double)diff_serial.tv_nsec/1E9)) << std::endl;
-    for(int k=0;k<n[2];k++){
-        for(int j=0;j<n[1];j++){
-            for(int i=0;i<n[0];i++){
-                for(int ns=0;ns<nspec+5;ns++){
-                    double fluxelement=flux[k*n[1]*n[0]*(nspec+5)+j*n[0]*(nspec+5)+i*(nspec+5)+ns];
+    for(int ns=0;ns<nspec+5;ns++){
+        for(int k=0;k<n[2];k++){
+            for(int j=0;j<n[1];j++){
+                for(int i=0;i<n[0];i++){
+                    double fluxelement=flux[ns*n[2]*n[1]*n[0]+k*n[1]*n[0]+j*n[0]+i];
                     fluxmag[ns]+=fluxelement*fluxelement;
                 }
             }
@@ -137,11 +136,11 @@ int main(int argc,char **argv){
     diff_ispc.tv_sec=end_ispc.tv_sec-start_ispc.tv_sec;
     diff_ispc.tv_nsec=end_ispc.tv_nsec-start_ispc.tv_nsec;
     std::cout << "ispc Code Runtime: " << ((double)diff_ispc.tv_sec + ((double)diff_ispc.tv_nsec/1E9)) << std::endl;
-    for(int k=0;k<n[2];k++){
-        for(int j=0;j<n[1];j++){
-            for(int i=0;i<n[0];i++){
-                for(int ns=0;ns<nspec+5;ns++){
-                    double fluxelement=flux[k*n[1]*n[0]*(nspec+5)+j*n[0]*(nspec+5)+i*(nspec+5)+ns];
+    for(int ns=0;ns<nspec+5;ns++){
+        for(int k=0;k<n[2];k++){
+            for(int j=0;j<n[1];j++){
+                for(int i=0;i<n[0];i++){
+                    double fluxelement=flux[ns*n[2]*n[1]*n[0]+k*n[1]*n[0]+j*n[0]+i];
                     fluxmag[ns]+=fluxelement*fluxelement;
                 }
             }
