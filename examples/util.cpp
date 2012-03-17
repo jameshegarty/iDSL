@@ -137,6 +137,16 @@ bool loadImage(const char *filename, int* width, int* height, int *channels, uns
   return false;
 }
 
+bool checkFloatImage(const char *filename){
+  const char *ext = filename + strlen(filename) - 3;
+
+  if(strcmp(ext,"flo")==0){
+    return true;
+  }
+
+  return false;
+}
+
 bool loadImage(const char *filename, int* width, int* height, int *channels, float **data){
   const char *ext = filename + strlen(filename) - 3;
 

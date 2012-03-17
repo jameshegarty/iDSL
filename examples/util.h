@@ -10,6 +10,7 @@ enum Color {RED, GREEN, BLUE, ALPHA, LUM};
 
 const float PI = 3.1415926f;
 
+bool checkFloatImage(const char *file);
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned short **data);
 bool loadImage(const char *file, int* width, int* height, int *channels, float **data);

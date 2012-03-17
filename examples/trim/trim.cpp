@@ -4,25 +4,19 @@
 #include <assert.h>
 #include <stdlib.h>
 
-int main(int argc, char **argv){
+template<typename T>
+void trim(
+  T* data,
+  int left,
+  int right,
+  int top,
+  int bottom,
+  int width,
+  int height, 
+  int channels,
+  char * outfilename){
 
-  if(argc!=7){
-    printf("Trim pixels from the sides of the image\n");
-    printf("usage: trim in.type left right top bottom out.type\n");
-    return 1;
-  }
-
-  int width, height, channels;
-  unsigned char *data;
-
-  bool res = loadImage(argv[1], &width, &height, &channels, &data);
-
-  unsigned char *out = new unsigned char[width*height*channels];
-
-  int left = atoi(argv[2]);
-  int right = atoi(argv[3]);
-  int top = atoi(argv[4]);
-  int bottom = atoi(argv[5]);
+  T *out = new T[width*height*channels];
 
   int outWidth = width-left-right;
   int outHeight = height-top-bottom;
@@ -35,9 +29,61 @@ int main(int argc, char **argv){
     }
   }
 
-  res = saveImage(argv[6], outWidth, outHeight, channels, out);
+  saveImage(outfilename, outWidth, outHeight, channels, out);
 
   delete[] out;
+}
+
+int main(int argc, char **argv){
+
+  if(argc!=7){
+    printf("Trim pixels from the sides of the image\n");
+    printf("usage: trim in.type left right top bottom out.type\n");
+    return 1;
+  }
+
+  int width, height, channels;
+  unsigned char *data;
+
+
+
+  if(!checkFloatImage(argv[1])){
+    bool res = loadImage(argv[1], &width, &height, &channels, &data);
+    if(!res){
+      printf("error reading image\n");
+      return 1;
+    }
+
+    trim(
+	 data,
+	 atoi(argv[2]),
+	 atoi(argv[3]),
+	 atoi(argv[4]),
+	 atoi(argv[5]),
+	 width,
+	 height,
+	 channels,
+	 argv[6]);
+  }else{
+    float *dataF;
+    bool res = loadImage(argv[1], &width, &height, &channels, &dataF);
+    if(!res){
+      printf("error reading image\n");
+      return 1;
+    }
+
+    trim(
+	 dataF,
+	 atoi(argv[2]),
+	 atoi(argv[3]),
+	 atoi(argv[4]),
+	 atoi(argv[5]),
+	 width,
+	 height,
+	 channels,
+	 argv[6]);
+
+  }
 
   return 0;
 }
