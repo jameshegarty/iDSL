@@ -10,6 +10,7 @@ default:
 	make -C lucaskanade $@; \
 	make -C motionestimation $@; \
 	make -C rotate $@; \
+	make -C trim $@; \
 
 debug:
 	make -C backAdvect $@; \
@@ -36,3 +37,4 @@ clean:
 	make -C lucaskanade $@; \
 	make -C motionestimation $@; \
 	make -C rotate $@; \
+	make -C trim $@; \

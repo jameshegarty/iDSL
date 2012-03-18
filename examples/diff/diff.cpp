@@ -4,51 +4,22 @@
 #include <assert.h>
 #include <string.h>
 
-int main(int argc, char **argv){
+enum DiffType {L2, Pixels, Total};
 
-  if(argc!=4){
-    printf("Usage: diff [type] image1.type image2.type\n");
-    printf("[type] is either --L2 for l2 norm between pixels\n");
-    printf("       or --pixels for # of pixels different\n");
-    printf("       or --total for the total # of pixels in the image\n");
-    printf("returns the number of pixels that are different\n");
-    return 1;
-  }
-
-  int width, height, channels;
-  int width2, height2, channels2;
-  unsigned char *data;
-  unsigned char *data2;
-
-  enum diffTypeType {L2, Pixels, Total} diffType;
-
-  if(strcmp(argv[1],"--L2")==0){
-    diffType = L2;
-  }else if(strcmp(argv[1],"--total")==0){
-    diffType = Total;
-  }else{
-    diffType = Pixels;
-  }
-
-  if(!loadImage(argv[2], &width, &height, &channels, &data)){
-    printf("Error loading image\n");
-    return 1;
-  }
-
-  if(!loadImage(argv[3], &width2, &height2, &channels2, &data2)){
-    printf("Error loading image\n");
-    return 1;
-  }
-
-  assert(width==width2);
-  assert(height==height2);
-  assert(channels==channels2);
+template<typename T>
+void diff(
+  T* data,
+  T* data2,
+  int width,
+  int height,
+  int channels,
+  DiffType diffType){
 
   int diffCount = 0;
   double diffCountDouble = 0;
   int total = 0;
 
-  unsigned char *diffImage = new unsigned char[width*height];
+  T *diffImage = new T[width*height];
 
   for(int i=0; i<width*height; i++){diffImage[i]=0;}
 
@@ -90,6 +61,92 @@ int main(int argc, char **argv){
   }else{
     printf("%f\n",diffCountDouble);
   }
+
+}
+
+int main(int argc, char **argv){
+
+  if(argc!=4){
+    printf("Usage: diff [type] image1.type image2.type\n");
+    printf("[type] is either --L2 for l2 norm between pixels\n");
+    printf("       or --pixels for # of pixels different\n");
+    printf("       or --total for the total # of pixels in the image\n");
+    printf("returns the number of pixels that are different\n");
+    return 1;
+  }
+
+  int width, height, channels;
+  int width2, height2, channels2;
+
+
+  DiffType diffType;
+
+  if(strcmp(argv[1],"--L2")==0){
+    diffType = L2;
+  }else if(strcmp(argv[1],"--total")==0){
+    diffType = Total;
+  }else{
+    diffType = Pixels;
+  }
+
+  if(!checkFloatImage(argv[2])){
+
+    unsigned char *data;
+    unsigned char *data2;
+
+    if(!loadImage(argv[2], &width, &height, &channels, &data)){
+      printf("Error loading image %s\n",argv[3]);
+      return 1;
+    }
+
+    if(!loadImage(argv[3], &width2, &height2, &channels2, &data2)){
+      printf("Error loading image %s\n",argv[3]);
+      return 1;
+    }
+
+    assert(width==width2);
+    assert(height==height2);
+    assert(channels==channels2);
+    
+    diff(
+      data,
+      data2,
+      width,
+      height,
+      channels,
+      diffType);
+
+  }else{
+
+    float *dataF;
+    float *data2F;
+
+    if(!loadImage(argv[2], &width, &height, &channels, &dataF)){
+      printf("Error loading image %s\n",argv[2]);
+      return 1;
+    }
+
+    if(!loadImage(argv[3], &width2, &height2, &channels2, &data2F)){
+      printf("Error loading image %s\n",argv[3]);
+      return 1;
+    }
+
+    assert(width==width2);
+    assert(height==height2);
+    assert(channels==channels2);
+
+    diff(
+      dataF,
+      data2F,
+      width,
+      height,
+      channels,
+      diffType);
+
+  }
+
+
+
 
   return 0;
 }
