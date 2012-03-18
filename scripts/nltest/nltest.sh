@@ -14,7 +14,7 @@ do
   for (( i=0; i<5; i+=1 )) #100
   do
 
-    $noise = `echo "($block*5+$i)*5"|bc`
+    noise=$(echo "(${block}*5+${i})*5" | bc)
     outputname="n`printf "%02d" $noise`"
     output="./temp/vectors_${outputname}.flo"
 
