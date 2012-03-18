@@ -7,12 +7,20 @@ EXAMPLES="../../examples/"
 
 rm ./results/res.txt
 
-for (( noise=0; noise<100; noise+=5 ))
+
+for (( block=0; block<4; block+=1 ))
 do
 
-  outputname="n`printf "%02d" $noise`"
-  output="./temp/vectors_${outputname}.flo"
+  for (( i=0; i<5; i+=1 )) #100
+  do
 
-  ${IMAGESTACK} -load m1.png -translate 2 2 -noise 0 0.0`printf "%02d" $noise` -save ./flow_code/data/other-data/RubberWhale/frame11.png &&  matlab -r "cd flow_code;estimate_flow_demo;exit" && mv ./flow_code/result/middle-other/estimated_flow_004.flo ${output} && ${EXAMPLES}trim/trim $output 16 16 16 16 ${output}.trim.flo && ${EXAMPLES}diff/diff --L2 ${output}.trim.flo ref.flo >> ./results/res.txt &
+    $noise = `echo "($block*5+$i)*5"|bc`
+    outputname="n`printf "%02d" $noise`"
+    output="./temp/vectors_${outputname}.flo"
+
+    ${IMAGESTACK} -load m1.png -translate 2 2 -noise 0 0.0`printf "%02d" $noise` -save ./temp/frame2_`printf "%02d" $noise`.png &&  matlab -r "cd flow_code;nltest('classic+nl-fast','../m1.png','../temp/frame2_`printf "%02d" $noise`.png','.${output}');exit" && ${EXAMPLES}trim/trim $output 16 16 16 16 ${output}.trim.flo && ${EXAMPLES}diff/diff --L2 ${output}.trim.flo ref.flo >> ./results/res.txt &
   
+  done
+
+  wait
 done
