@@ -331,6 +331,14 @@ int main(int argc, char **argv){
 
   lucaskanade(width,height,atoi(argv[4]),atoi(argv[5]),atoi(argv[6]),argc==8,frame1,frame2,out);
 
+  // hack: flo considers y the opposite of our internal format
+  for(int x=0; x<width; x++){
+    for(int y=0; y<height; y++){
+      out[2*(y*width+x)+1]*=-1.f;
+    }
+  }
+
+
   saveImage(argv[3], width, height, 2, out);
 
   delete[] frame1;
