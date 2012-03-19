@@ -11,7 +11,7 @@ void ofBrute(
   int diffRadius, 
   unsigned char* frame1, 
   unsigned char* frame2, 
-  unsigned char* out){
+  float* out){
 
   int border = windowRadius+diffRadius;
 
@@ -55,8 +55,8 @@ void ofBrute(
 	}
       }
 
-      out[3*(y*width+x)]=128+lowestDiffX*10;
-      out[3*(y*width+x)+1]=128+lowestDiffY*10;
+      out[2*(y*width+x)]=lowestDiffX;
+      out[2*(y*width+x)+1]=lowestDiffY;
     }
   }
 
@@ -65,7 +65,7 @@ void ofBrute(
 int main(int argc, char **argv){
 
   if(argc!=6){
-    printf("Usage: motionestimation frame1.type frame2.type output.bmp searchWindowRadius diffWindowRadius\n");
+    printf("Usage: motionestimation frame1.type frame2.type output.flo searchWindowRadius diffWindowRadius\n");
     return 1;
   }
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv){
 
   unsigned char *frame1 = new unsigned char[width*height];
   unsigned char *frame2 = new unsigned char[width*height];
-  unsigned char *out = new unsigned char[width*height*channels];
+  float *out = new float[width*height*2];
 
   toGrayscale(width,height,data,frame1);
   toGrayscale(width,height,data2,frame2);
@@ -100,11 +100,18 @@ int main(int argc, char **argv){
   saveImage("frame2gray.bmp", width, height, 1, frame2);
 
   // zero out vectors array
-  for(int i=0; i<width*height*channels; i++){out[i]=0;}
+  for(int i=0; i<width*height*2; i++){out[i]=0;}
 
   ofBrute(width,height,atoi(argv[4]),atoi(argv[5]),frame1,frame2,out);
 
-  saveImage(argv[3], width, height, channels, out);
+  // hack: flo considers y the opposite of our internal format
+  for(int x=0; x<width; x++){
+    for(int y=0; y<height; y++){
+      out[2*(y*width+x)+1]*=-1.f;
+    }
+  }
+
+  saveImage(argv[3], width, height, 2, out);
 
   delete[] frame1;
   delete[] frame2;
