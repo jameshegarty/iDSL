@@ -57,17 +57,16 @@ void *vectoradd_threaded(void *threadarg){
         diff.tv_nsec=end.tv_nsec-start.tv_nsec;
     }
     vectoradd_params->runtime=((double)diff.tv_sec + ((double)diff.tv_nsec/1E9));
-    std::cout << "[" << thread_id << "]" << "Runtime = " << vectoradd_params->runtime << std::endl;
+    //std::cout << "[" << thread_id << "]" << "Runtime = " << vectoradd_params->runtime << std::endl;
 
 }
 int main(int argc,char **argv){
-    if(argc<2){
-        std::cout<<"Usage: <executable> <number_of_threads>"<<std::endl;
+    if(argc!=3){
+        std::cout<<"Usage: <executable> <number_of_threads> <size>"<<std::endl;
         return EXIT_FAILURE;
     }
     int numthreads=atoi(argv[1]);
-    //const long SIZE=(4L*1024L*1024L*1024L);
-    const long SIZE=atoi(argv[2]);
+    const long long SIZE=atoll(argv[2]);
     double *a=new double[SIZE];
     double *b=new double[SIZE];
     double *c=new double[SIZE];
@@ -100,7 +99,7 @@ int main(int argc,char **argv){
     for(int t=0;t<numthreads;t++){
         total_runtime+=thread_data_array[t].runtime;
     }
-    std::cout<<"Average: "<<numthreads<<" "<<SIZE<<" "<<total_runtime/numthreads<<std::endl;
+    std::cout<<"Threads, Length, Avg. Runtime = "<<numthreads<<", "<<SIZE<<", "<<total_runtime/numthreads<<std::endl;
 
     delete[] a;
     delete[] b;
