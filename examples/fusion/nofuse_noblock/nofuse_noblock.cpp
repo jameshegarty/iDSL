@@ -3,19 +3,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include <algorithm>
-#include "../../convolution/convolution.h"
-#include <ctime>
-#include <cstdlib>
-#include <time.h>
-
-#include <pthread.h>
-
 #include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <cstdlib>
-#include <cmath>
-#include <ctime>
+#include "../../convolution/convolution.h"
+#include <time.h>
 
 
 int main(int argc, char **argv){
@@ -44,7 +34,7 @@ int main(int argc, char **argv){
   timespec startTime;
   timespec endTime;
 
-  clock_gettime(CLOCK_REALTIME,&startSerial);
+  clock_gettime(CLOCK_REALTIME,&startTime);
 
   for(int c=0; c<channels; c++){
     

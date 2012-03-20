@@ -10,7 +10,8 @@ default: release
 debug: CXXFLAGS += -DDEBUG -O0 -g
 debug: $(EXECUTABLE)
 
-release: CXXFLAGS += -DNDEBUG -O3 -g -ftree-vectorize
+#release: CXXFLAGS += -DNDEBUG -O3 -g -ftree-vectorize
+release: CXXFLAGS += -O3 -funroll-loops
 release: $(EXECUTABLE)
 
 $(EXECUTABLE) : $(OBJECTS)
