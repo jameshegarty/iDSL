@@ -67,9 +67,12 @@ int main(int argc,char **argv){
     }
     int numthreads=atoi(argv[1]);
     const long long SIZE=atoll(argv[2]);
-    double *a=new double[SIZE];
-    double *b=new double[SIZE];
-    double *c=new double[SIZE];
+    double *a=new double[SIZE*3];
+    double *b=a+SIZE;
+    double *c=b+SIZE;
+    //double *a=new double[SIZE];
+    //double *b=new double[SIZE];
+    //double *c=new double[SIZE];
 
     pthread_t threads[numthreads];
     struct thread_data thread_data_array[numthreads];
@@ -102,8 +105,6 @@ int main(int argc,char **argv){
     std::cout<<"Threads, Length, Avg. Runtime = "<<numthreads<<", "<<SIZE<<", "<<total_runtime/numthreads<<std::endl;
 
     delete[] a;
-    delete[] b;
-    delete[] c;
 
     pthread_exit(NULL);
     return EXIT_SUCCESS;
