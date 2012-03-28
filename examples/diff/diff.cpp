@@ -41,7 +41,10 @@ void diff(
       }
 
       if(diffType == L2){
-	diffCountDouble += L2Temp;
+	if(sqrt(L2Temp)<1000.f){ // ignore crazy outliers
+	  diffCountDouble += sqrt(L2Temp);
+	}
+
 	diffImage[y*width+x] = L2Temp;
       }
 
@@ -104,9 +107,10 @@ int main(int argc, char **argv){
       return 1;
     }
 
-    assert(width==width2);
-    assert(height==height2);
-    assert(channels==channels2);
+    if(width!=width2 || height!=height2 || channels!=channels2){
+      printf("width, height, or channels doesn't match\n");
+      return 1;
+    }
     
     diff(
       data,
@@ -131,9 +135,10 @@ int main(int argc, char **argv){
       return 1;
     }
 
-    assert(width==width2);
-    assert(height==height2);
-    assert(channels==channels2);
+    if(width!=width2 || height!=height2 || channels!=channels2){
+      printf("width, height, or channels doesn't match\n");
+      return 1;
+    }
 
     diff(
       dataF,
