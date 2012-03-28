@@ -8,13 +8,15 @@ void *hypterm_threaded(void *threadarg){
     int ne[3]={calc_params->n0e,calc_params->n1e,calc_params->n2e};
     int ng[3]={calc_params->ng0,calc_params->ng1,calc_params->ng2};
     double dx[3]={calc_params->dx0,calc_params->dx1,calc_params->dx2};
-    int blocksize=calc_params->blocksize;
+    int blocksizeL1=calc_params->blocksizeL1;
+    int blocksizeL2=calc_params->blocksizeL2;
+    int blocksizeL3=calc_params->blocksizeL3;
 
     int nspec=calc_params->nspec;
     double *pres=calc_params->pres;
     double *cons=calc_params->cons;
     double *flux=calc_params->flux;
-    hypterm_serial(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
+    hypterm_serial(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksizeL1,blocksizeL2,blocksizeL3);
 }
 
 void *hypterm_threaded_ispc(void *threadarg){
@@ -25,11 +27,10 @@ void *hypterm_threaded_ispc(void *threadarg){
     int ne[3]={calc_params->n0e,calc_params->n1e,calc_params->n2e};
     int ng[3]={calc_params->ng0,calc_params->ng1,calc_params->ng2};
     double dx[3]={calc_params->dx0,calc_params->dx1,calc_params->dx2};
-    int blocksize=calc_params->blocksize;
 
     int nspec=calc_params->nspec;
     double *pres=calc_params->pres;
     double *cons=calc_params->cons;
     double *flux=calc_params->flux;
-    ispc::hypterm_ispc(n,ns,ne,ng,dx,nspec,cons,pres,flux,blocksize);
+    ispc::hypterm_ispc(n,ns,ne,ng,dx,nspec,cons,pres,flux);
 }

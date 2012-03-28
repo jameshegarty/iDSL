@@ -1,4 +1,4 @@
-export void hypterm_ispc(uniform int n[],uniform int ns[],uniform int ne[],uniform int ng[],uniform double dx[],uniform int nspec,uniform double cons[],uniform double pres[],uniform double flux[],uniform int blocksize){
+export void hypterm_ispc(uniform int n[],uniform int ns[],uniform int ne[],uniform int ng[],uniform double dx[],uniform int nspec,uniform double cons[],uniform double pres[],uniform double flux[]){
     const double ALPHA = 0.8;
     const double BETA = -0.2;
     const double GAMMA = 4.0/105.0;

@@ -27,7 +27,9 @@ struct thread_data{
     double *pres;
     double *cons;
     double *flux;
-    int blocksize;
+    int blocksizeL1;
+    int blocksizeL2;
+    int blocksizeL3;
 };
 
 void *hypterm_threaded(void *threadarg);

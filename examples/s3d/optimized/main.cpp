@@ -61,15 +61,15 @@ void init(int *n,int *ng,double *dx,int nspec,double *cons,double *pres){
 }
 
 int main(int argc,const char **argv){
-    if(argc < 3){
-        std::cout << "Usage: <executable> <number_of_threads> <blocksize>" << std::endl;
+    if(argc < 4){
+        std::cout << "Usage: <executable> <blocksizeL1> <blocksizeL2> <blocksizeL3>" << std::endl;
         exit(EXIT_FAILURE);
     }
-    int numthreads=atoi(argv[1]);
-    int blocksize=atoi(argv[2]);
+    int blocksizeL1=atoi(argv[1]);
+    int blocksizeL2=atoi(argv[2]);
+    int blocksizeL3=atoi(argv[3]);
 
-    std::cout << "Block Size (Double Words)=" << blocksize << std::endl;
-    std::cout << "Number of Threads=" << numthreads << std::endl;
+    std::cout << "Block Sizes (L1, L2, L3 -- Double Words)=" << blocksizeL1 << "," << blocksizeL2 << "," << blocksizeL3 << std::endl;
 
     int nspec=9;
     double dx[3]={1e-3,1e-3,1e-3};
@@ -102,7 +102,7 @@ int main(int argc,const char **argv){
         fluxmag[m]=0.0;
     }
     clock_gettime(CLOCK_REALTIME,&start_serial);
-    hypterm_serial(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksize);
+    hypterm_serial(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksizeL1,blocksizeL2,blocksizeL3);
     clock_gettime(CLOCK_REALTIME,&end_serial);
     timespec diff_serial;
     diff_serial.tv_sec=end_serial.tv_sec-start_serial.tv_sec;
@@ -130,7 +130,7 @@ int main(int argc,const char **argv){
         fluxmag[m]=0.0;
     }
     clock_gettime(CLOCK_REALTIME,&start_ispc);
-    ispc::hypterm_ispc(n,n0,n,ng,dx,nspec,cons,pres,flux,blocksize);
+    ispc::hypterm_ispc(n,n0,n,ng,dx,nspec,cons,pres,flux);
     clock_gettime(CLOCK_REALTIME,&end_ispc);
     timespec diff_ispc;
     diff_ispc.tv_sec=end_ispc.tv_sec-start_ispc.tv_sec;
