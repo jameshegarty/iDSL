@@ -67,7 +67,7 @@ void thresh(unsigned char *in, unsigned int *sat, float *satSq, int width, int h
 }
 
 void label(unsigned char *in, unsigned char *out, int width, int height, unsigned int minArea){
-  const int blockSize = 2;
+  const int blockSize = 8;
 
   unsigned char equivClass[256];
   bool live[256];
@@ -93,18 +93,18 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
 	if(in[x+y*width]){
 	  if(x==0 && y==0){
 	    out[x+y*width] = labelStack[labelStackPosition];
-	    live[out[x+y*width]]=true;
+	    //live[out[x+y*width]]=true; // dont care about liveness on first row
 	    area[out[x+y*width]]++;
 	    labelStackPosition--;
 	    assert(labelStackPosition>=0);
 	  }else if(x==0){
 	    if(in[x+(y-1)*width]){
 	      out[x+y*width] = out[x+(y-1)*width];
-	      live[out[x+y*width]]=0;
+	      live[out[x+y*width]]=true;
 	      area[out[x+y*width]]++;
 	    }else{
 	      out[x+y*width] = labelStack[labelStackPosition];
-	      live[out[x+y*width]]=0;
+	      live[out[x+y*width]]=true;
 	      area[out[x+y*width]]++;
 	      labelStackPosition--;
 	      assert(labelStackPosition>=0);
@@ -115,7 +115,7 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
 	      area[out[x]]++;
 	    }else{
 	      out[x+y*width] = labelStack[labelStackPosition];
-	      live[out[x+y*width]]=0;
+	      //live[out[x+y*width]]=0; // don't care about liveness on first row
 	      area[out[x+y*width]]++;
 	      labelStackPosition--;
 	      assert(labelStackPosition>=0);
@@ -124,23 +124,29 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
 	    if(in[x+(y-1)*width] && in[(x-1)+y*width]){
 	      if(out[x+(y-1)*width]!=out[(x-1)+y*width]){
 		out[x+y*width] = std::min(out[(x-1)+y*width],out[x+(y-1)*width]);
-		live[out[x+y*width]]=0;
+		live[out[x+y*width]]=true;
 		area[out[x+y*width]]++;
 		int mx = std::max(out[(x-1)+y*width],out[x+(y-1)*width]);
-		//assert(equivClass[mx]==0);
+
+		if(equivClass[mx]!=0 && equivClass[mx]!=out[x+y*width]){
+		  printf("%d %d %d %d\n",equivClass[mx],out[(x-1)+y*width],out[x+(y-1)*width],mx);
+		}
+
+		assert(equivClass[mx]==0 || equivClass[mx]==out[x+y*width]);
+
 		equivClass[mx] = out[x+y*width];
 	      }else{
 		out[x+y*width] = out[x+(y-1)*width];
-		live[out[x+y*width]]=0;
+		live[out[x+y*width]]=true;
 		area[out[x+y*width]]++;
 	      }
 	    }else if(in[x+(y-1)*width] || in[(x-1)+y*width]){
 	      out[x+y*width] = out[x+(y-1)*width] | out[(x-1)+y*width];
-	      live[out[x+y*width]]=0;
+	      live[out[x+y*width]]=true;
 	      area[out[x+y*width]]++;
 	    }else{
 	      out[x+y*width] = labelStack[labelStackPosition];
-	      live[out[x+y*width]]=0;
+	      live[out[x+y*width]]=true;
 	      area[out[x+y*width]]++;
 	      labelStackPosition--;
 	      assert(labelStackPosition>=0);
@@ -150,40 +156,51 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
 	}else{
 	  out[x+y*width]=0;
 	}
-
-	
-	/*
-	if(x>0 && in[(x-1)+y*width]==in[x+y*width]){
-	  out[x+y*width]=out[(x-1)+y*width];
-	}else if(x>0 && y>0 && in[(x-1)+y*width]==in[x+(y-1)*width] && 
-		 out[(x-1)+y*width]!=out[x+(y-1)*width]){
-	  out[x+y*width] = std::min(out[(x-1)+y*width],out[x+(y-1)*width]);
-	  int mx = std::max(out[(x-1)+y*width],out[x+(y-1)*width]);
-	  assert(equivClass[mx]==0);
-	  equivClass[mx] = out[x+y*width];
-	}else if(x>0 && y>0 && 
-		 in[(x-1)+y*width] != in[x+y*width] &&
-		 in[x+(y-1)*width] == in[x+y*width]){
-	  out[x+y*width]=out[x+(y-1)*width];
-	}else if(x>0 && y>0 && in[(x-1)+y*width] != in[x+(y-1)*width]){
-	  out[x+y*width] = labelStack[labelStackPosition];
-	  labelStackPosition--;
-	  assert(labelStackPosition>=0);
-	}else if(y>0 && in[x+y*width] == in[x+(y-1)*width]){
-	  assert(x==0);
-	  out[x+y*width] = out[x+(y-1)*width];
-	}else if(x==0 && y==0){
-	  if(in[x+y*width]){
-	    out[x+y*width]=labelStack[labelStackPosition];
-	    labelStackPosition--;
-	    assert(labelStackPosition>=0);
-	  }
-	}else{
-	  assert(false);
-	  }*/
       }
       
       // clear out dead stuff (stuff that's too small) from last row
+      // note: we are now aliasing the live variable w/ a variable that stores stuff to delete
+      if(y>0){
+	for(int i=0; i<256; i++){
+	  //printf("%d %d %d %d\n",i,live[i],live[equivClass[i]],area[i]);
+	  if(!live[i] && (!live[equivClass[i]] || equivClass[i]==0) && area[i]<minArea){
+	    //assert(equivClass[i]==0);
+	    // I think this works, because if either (a) i was larger than the equiv classes on join, or (b) i was smaller
+	    // if (a) then equivClass should point to the right liveness
+	    // if (b) then live[i] was set true b/c it's value was picked up
+
+	    live[i]=true;
+	    //printf("delete %d\n",i);
+	  }else{
+	    live[i]=false;
+	  }
+	}
+	
+	for(int x=width-1; x>=0; x--){
+	  if(live[out[x+(y-1)*width]]){
+	    out[x+(y-1)*width]=0;
+	    in[x+(y-1)*width]=0;
+	  }
+
+	  // can't do this here
+	  /*
+	  int eq = equivClass[out[x+(y-1)*width]];
+	  if(eq!=0){
+	    out[x+(y-1)*width]=eq;
+	  }
+	  */
+	}
+	
+	for(int i=0; i<256; i++){
+	  if(live[i]){
+	    live[i]=false;
+	    area[i]=0;
+	    labelStackPosition++;
+	    labelStack[labelStackPosition]=i;
+	    equivClass[i]=0;
+	  }
+	}
+      }
     }
     
   }
@@ -224,6 +241,8 @@ int main(int argc, char **argv){
   // do thresh
   thresh(dataGray, sat, satSquared, width, height, k, window);
   invert(dataGray,width,height);
+
+  saveImage("./resRaw.bmp", width, height, 1, dataGray);
 
   // label
   unsigned char *L = new unsigned char[width*height];
