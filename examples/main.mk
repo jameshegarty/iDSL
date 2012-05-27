@@ -2,7 +2,7 @@ CXX := g++
 CXXFLAGS := -Wall -Werror
 LFLAGS := -L. -fpic -g
 
-OBJECTS := $(patsubst %.cpp,%.o,$(SRC))
+OBJECTS += $(patsubst %.cpp,%.o,$(SRC))
 DEPENDENCIES := $(patsubst %.cpp,%.d,$(SRC))
 
 default: release

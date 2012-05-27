@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "../util.h"
 #include <algorithm>
+#include "ispc.h"
 
 void SAT(unsigned char *in, unsigned int *out, int width, int height){
   out[0] = in[0];
@@ -216,6 +217,10 @@ void invert(unsigned char *in, int width, int height){
 
 int main(int argc, char **argv){
 
+  if(argc != 4){
+    printf("wrong # args\n");
+  }
+
   int width, height, channels;
   unsigned char *data;
   float k = float(atoi(argv[2]))/1000.f;
@@ -244,9 +249,23 @@ int main(int argc, char **argv){
 
   saveImage("./resRaw.bmp", width, height, 1, dataGray);
 
+  // dist trans
+  unsigned char *upVec = new unsigned char[width*height];
+  unsigned char *downVec = new unsigned char[width*height];
+  unsigned char *leftVec = new unsigned char[width*height];
+  unsigned char *rightVec = new unsigned char[width*height];
+  ispc::dist(dataGray, upVec, downVec, leftVec, rightVec, width, height);
+  saveImage("./upVec.bmp", width, height, 1, upVec);
+  saveImage("./downVec.bmp", width, height, 1, downVec);
+  saveImage("./leftVec.bmp", width, height, 1, leftVec);
+  saveImage("./rightVec.bmp", width, height, 1, rightVec);
+
   // label
   unsigned char *L = new unsigned char[width*height];
-  label(dataGray,L,width,height,30);
+  unsigned char *temp = new unsigned char[width*height];
+  //label(dataGray,L,width,height,30);
+
+  ispc::simple(dataGray,upVec,downVec,leftVec,rightVec,temp,L,width,height);
 
   // write out
   saveImage("./res.bmp", width, height, 1, dataGray);
