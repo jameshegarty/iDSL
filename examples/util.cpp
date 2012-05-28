@@ -404,15 +404,27 @@ bool saveImageAutoLevels(const char *filename, int width, int height, int channe
 }
 
 
-// truncates to a char
-bool saveImage(const char *filename, int width, int height, int channels, unsigned short *data){
-  unsigned char *temp = new unsigned char[width*height*channels];
 
-  for(int i=0; i<width*height*channels; i++){
-    temp[i]=data[i];
+bool saveImage(const char *filename, int width, int height, unsigned short *data){
+  unsigned char *temp = new unsigned char[width*height*3];
+
+  //  for(int i=0; i<width*height*channels; i++){
+  //    temp[i]=data[i] % 256;
+  //  }
+  for(int y=0; y<height; y++){
+    for(int x=0; x<width; x++){
+      temp[(x+y*width)*3+0]=data[x+y*width] >> 8;
+      temp[(x+y*width)*3+1]=data[x+y*width] & 255;
+      temp[(x+y*width)*3+2]=0;
+
+
+      if(data[x+y*width]>256){
+	assert(temp[(x+y*width)*3+0]>0);
+      }
+    }
   }
 
-  bool res = saveImage(filename,width,height,channels,temp);
+  bool res = saveImage(filename,width,height,3,temp);
 
   delete[] temp;
 

@@ -15,8 +15,8 @@ bool loadImage(const char *file, int* width, int* height, int *channels, unsigne
 bool loadImage(const char *file, int* width, int* height, int *channels, unsigned short **data);
 bool loadImage(const char *file, int* width, int* height, int *channels, float **data);
 bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
-// truncates the unsigned short to an unsigned char
-bool saveImage(const char *file, int width, int height, int channels, unsigned short *data);
+// save one half of short in red, other in green. only takes 1 channel
+bool saveImage(const char *file, int width, int height, unsigned short *data);
 // input data should be [0,1]
 bool saveImage(const char *file, int width, int height, int channels, float *data);
 // scales data to be [0,1]

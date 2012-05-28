@@ -70,147 +70,6 @@ void thresh(unsigned char *in, unsigned int *sat, float *satSq, int width, int h
 
 }
 
-/*
-void label(unsigned char *in, unsigned char *out, int width, int height, unsigned int minArea){
-  const int blockSize = 8;
-
-  unsigned char equivClass[256];
-  bool live[256];
-  unsigned int area[256];
-  unsigned char labelStack[256];
-  int labelStackPosition = -1;
-  
-  for(int i=0; i<256; i++){
-    equivClass[i]=0;
-    live[i]=false;
-    area[i]=0;
-    labelStack[i]=i+1;
-  }
-  labelStackPosition = 254;
-
-  //  for(int block = 0; block < height/blockSize; block++){
-  for(int block = 0; block < 1; block++){
-
-    for(int y = block*blockSize; y<height && y <(block+1)*blockSize; y++){
-
-      for(int x=0; x<width; x++){
-
-	if(in[x+y*width]){
-	  if(x==0 && y==0){
-	    out[x+y*width] = labelStack[labelStackPosition];
-	    //live[out[x+y*width]]=true; // dont care about liveness on first row
-	    area[out[x+y*width]]++;
-	    labelStackPosition--;
-	    assert(labelStackPosition>=0);
-	  }else if(x==0){
-	    if(in[x+(y-1)*width]){
-	      out[x+y*width] = out[x+(y-1)*width];
-	      live[out[x+y*width]]=true;
-	      area[out[x+y*width]]++;
-	    }else{
-	      out[x+y*width] = labelStack[labelStackPosition];
-	      live[out[x+y*width]]=true;
-	      area[out[x+y*width]]++;
-	      labelStackPosition--;
-	      assert(labelStackPosition>=0);
-	    }
-	  }else if(y==0){
-	    if(in[x-1]){
-	      out[x]=out[x-1];
-	      area[out[x]]++;
-	    }else{
-	      out[x+y*width] = labelStack[labelStackPosition];
-	      //live[out[x+y*width]]=0; // don't care about liveness on first row
-	      area[out[x+y*width]]++;
-	      labelStackPosition--;
-	      assert(labelStackPosition>=0);
-	    }
-	  }else{
-	    if(in[x+(y-1)*width] && in[(x-1)+y*width]){
-	      if(out[x+(y-1)*width]!=out[(x-1)+y*width]){
-		out[x+y*width] = std::min(out[(x-1)+y*width],out[x+(y-1)*width]);
-		live[out[x+y*width]]=true;
-		area[out[x+y*width]]++;
-		int mx = std::max(out[(x-1)+y*width],out[x+(y-1)*width]);
-
-		if(equivClass[mx]!=0 && equivClass[mx]!=out[x+y*width]){
-		  printf("%d %d %d %d\n",equivClass[mx],out[(x-1)+y*width],out[x+(y-1)*width],mx);
-		}
-
-		assert(equivClass[mx]==0 || equivClass[mx]==out[x+y*width]);
-
-		equivClass[mx] = out[x+y*width];
-	      }else{
-		out[x+y*width] = out[x+(y-1)*width];
-		live[out[x+y*width]]=true;
-		area[out[x+y*width]]++;
-	      }
-	    }else if(in[x+(y-1)*width] || in[(x-1)+y*width]){
-	      out[x+y*width] = out[x+(y-1)*width] | out[(x-1)+y*width];
-	      live[out[x+y*width]]=true;
-	      area[out[x+y*width]]++;
-	    }else{
-	      out[x+y*width] = labelStack[labelStackPosition];
-	      live[out[x+y*width]]=true;
-	      area[out[x+y*width]]++;
-	      labelStackPosition--;
-	      assert(labelStackPosition>=0);
-	    }
-	  }
-
-	}else{
-	  out[x+y*width]=0;
-	}
-      }
-      
-      // clear out dead stuff (stuff that's too small) from last row
-      // note: we are now aliasing the live variable w/ a variable that stores stuff to delete
-      if(y>0){
-	for(int i=0; i<256; i++){
-	  //printf("%d %d %d %d\n",i,live[i],live[equivClass[i]],area[i]);
-	  if(!live[i] && (!live[equivClass[i]] || equivClass[i]==0) && area[i]<minArea){
-	    //assert(equivClass[i]==0);
-	    // I think this works, because if either (a) i was larger than the equiv classes on join, or (b) i was smaller
-	    // if (a) then equivClass should point to the right liveness
-	    // if (b) then live[i] was set true b/c it's value was picked up
-
-	    live[i]=true;
-	    //printf("delete %d\n",i);
-	  }else{
-	    live[i]=false;
-	  }
-	}
-	
-	for(int x=width-1; x>=0; x--){
-	  if(live[out[x+(y-1)*width]]){
-	    out[x+(y-1)*width]=0;
-	    in[x+(y-1)*width]=0;
-	  }
-
-	  // can't do this here
-	  //int eq = equivClass[out[x+(y-1)*width]];
-	  //if(eq!=0){
-	  //  out[x+(y-1)*width]=eq;
-	  //}
-	  //
-	}
-	
-	for(int i=0; i<256; i++){
-	  if(live[i]){
-	    live[i]=false;
-	    area[i]=0;
-	    labelStackPosition++;
-	    labelStack[labelStackPosition]=i;
-	    equivClass[i]=0;
-	  }
-	}
-      }
-    }
-    
-  }
-}
-*/
-
 void labelProp(
   unsigned short *out, 
   unsigned short area[maxLabels],
@@ -272,7 +131,7 @@ void labelProp(
 
   // prop x left
   for(int i=0; i<maxLabels; i++){rename[i]=i;}
-  for(int x=endY-2; x>=startX; x--){
+  for(int x=endX-2; x>=startX; x--){
     for(int y=startY; y<endY; y++){
       if(out[(x+1)+y*width]){
         rename[out[x+y*width]] = std::min(rename[out[x+y*width]], out[(x+1)+y*width]);
@@ -323,16 +182,16 @@ void label(
   unsigned short id = firstId; // atomic
 
   for(int y=startY; y<endY; y++){
-    if(in[y*width]){
-      out[y*width]=id; // atomic
+    if(in[startX+y*width]){
+      out[startX+y*width]=id; // atomic
       area[id]++; // atomic
-      assert(id<maxLabels-1);
+      assert(id<maxLabels);
       id++;
 
       // save liveness
       if(y==startY || y==endY-1){live[id-1]=true;}
     }else{
-      out[y*width]=0;
+      out[startX+y*width]=0;
     }
   }
 
@@ -343,7 +202,7 @@ void label(
 	if(in[x+y*width]){
 	  out[x+y*width]=id; // atomic
 	  area[id]++; // atomic
-	  assert(id<maxLabels-1);
+	  assert(id<maxLabels);
 	  id++;
 
 	  // save liveness
@@ -381,7 +240,7 @@ void label(
 
 // returns the largest label
 // note: destroys area
-unsigned char condenseLabels(
+unsigned short condenseLabels(
   unsigned short *labels, unsigned short area[maxLabels],
   unsigned short firstId,
   const int width, const int height,
@@ -445,6 +304,7 @@ void computeBB(
 
 void filter(
   unsigned char *in, 
+  unsigned char *reason,
   unsigned short *labels, 
   int width,
   int height){
@@ -459,6 +319,8 @@ void filter(
   computeBB(labels,l,r,t,b,width,height);
 
   bool kill[maxLabels];
+  unsigned char kreason[maxLabels];
+
   for(int i=0; i<maxLabels; i++){
     if(area[i]>0){ // is this region still there?
       
@@ -466,26 +328,41 @@ void filter(
       int w = (r[i]-l[i])+1;
       int h = (t[i]-b[i])+1;
       float ratio = float(w)/float(h);
-
+      
       //solidity
       float solidity = float(area[i])/float(w*h);
-
+      
       printf("%d %f %d %f\n",i,ratio,area[i],solidity);
-
-      if(ratio < 0.1f || ratio > 2.f || area[i]<6 || solidity < 0.25f){
-	printf("kill\n");
+      
+      float areaPercent = float(area[i])/float(width*height);
+      
+      if(ratio < 0.1f || ratio > 2.f){
 	kill[i] = true;
+	kreason[i]=50;
+      }else if(area[i]<6 || areaPercent>0.2f){
+	kill[i] = true;
+	kreason[i]=100;
+      }else if(solidity < 0.20f){
+	kill[i] = true;
+	kreason[i]=150;
       }else{
-	kill[i] = false;
+	kill[i]=false;
+	kreason[i]=0;
       }
+      
+    }else{
+      kill[i] = false;
+      kreason[i]=0;
     }
   }
+
 
   for(int x=0; x<width; x++){
     for(int y=0; y<height; y++){
       if(kill[labels[x+y*width]]){
 	in[x+y*width] = 0;
       }
+      reason[x+y*width]=kreason[labels[x+y*width]];
     }
   }
 
@@ -522,14 +399,15 @@ void makePyramid(
 
 int main(int argc, char **argv){
 
-  if(argc != 4){
+  if(argc != 5){
     printf("wrong # args\n");
   }
 
   int width, height, channels;
   unsigned char *data;
-  float k = float(atoi(argv[2]))/1000.f;
-  int window = atoi(argv[3]);
+  int inv = atoi(argv[2]);
+  float k = float(atoi(argv[3]))/1000.f;
+  int window = atoi(argv[4]);
 
   bool res = loadImage(argv[1], &width, &height, &channels, &data);
 
@@ -550,7 +428,7 @@ int main(int argc, char **argv){
 
   // do thresh
   thresh(dataGray, sat, satSquared, width, height, k, window);
-  invert(dataGray,width,height);
+  if(inv){invert(dataGray,width,height);}
 
   saveImage("./resRaw.bmp", width, height, 1, dataGray);
 
@@ -559,84 +437,66 @@ int main(int argc, char **argv){
 
   for(int L=0; L<4; L++){
     char filename[20];
-    sprintf(filename,"L_raw_%d.bmp",L);
+    sprintf(filename,"res_raw_%d.bmp",L);
     saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);
   }
 
-  // dist trans
-  /*
-  unsigned char *upVec = new unsigned char[width*height];
-  unsigned char *downVec = new unsigned char[width*height];
-  unsigned char *leftVec = new unsigned char[width*height];
-  unsigned char *rightVec = new unsigned char[width*height];
-  ispc::dist(dataGray, upVec, downVec, leftVec, rightVec, width, height);
-  saveImage("./upVec.bmp", width, height, 1, upVec);
-  saveImage("./downVec.bmp", width, height, 1, downVec);
-  saveImage("./leftVec.bmp", width, height, 1, leftVec);
-  saveImage("./rightVec.bmp", width, height, 1, rightVec);
-  */
 
   // label
-
-  //unsigned char *temp = new unsigned char[width*height];
-  int vecSize=16;
+  int vecSizeY=16;
+  int vecSizeX=160;
 
   unsigned char *dist=new unsigned char[width*height];
+  unsigned short *labels = new unsigned short[width*height];
+  unsigned short area[maxLabels];
+  unsigned char *reason = new unsigned char[width*height];
 
-  
-  for(int L = 3; L<4; L++){
+  for(int L = 3; L>=0; L--){
     int lw = width/pow(2,L);
     int lh = height/pow(2,L);
 
-    unsigned short *labels = new unsigned short[lw*lh];
-    /*    for(int bx=0; bx<width/vecSize; bx++){
-      for(int by=0; by<height/vecSize; by++){
-	label(dataGray,L,width,height,30,bx*vecSize,(bx+1)*vecSize,by*vecSize,(by+1)*vecSize);
-      }
-      }*/
-    unsigned short area[maxLabels];
     unsigned short firstId = 1;
 
-    for(int by=0; by<ceil((float)lh/(float)vecSize); by++){
-      int endY = (by+1)*vecSize;
-      if(endY>lh){endY=lh;}
-
-      label(pyramid[L],labels,area,lw,lh,firstId,6,0,lw,vecSize*by,endY);
-      firstId=condenseLabels(labels,area,firstId,lw,lh,0,lw,vecSize*by,endY);
-      firstId++;
-      printf("ML %d\n",(int)firstId);
+    for(int by=0; by<ceil((float)lh/(float)vecSizeY); by++){
+      for(int bx=0; bx<ceil((float)lw/(float)vecSizeX); bx++){
+	int endY = (by+1)*vecSizeY;
+	if(endY>lh){endY=lh;}
+	
+	int endX = (bx+1)*vecSizeX;
+	if(endX>lw){endX=lw;}
+	
+	label(pyramid[L],labels,area,lw,lh,firstId,6,vecSizeX*bx,endX,vecSizeY*by,endY);
+	firstId=condenseLabels(labels,area,firstId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY);
+	firstId++;
+	printf("ML %d\n",(int)firstId);
+      }
     }
     
+    // fix labels across region boundries
     labelProp(labels,area,lw,lh,0,lw,0,lh);
     computeArea(labels,area,lw,lh);
     int totLabels=condenseLabels(labels,area,1,lw,lh,0,lw,0,lh);
     printf("TL %d\n",totLabels);
-
+    
     distanceTransform(pyramid[L],dist,0,lw,lh);
     
-    filter(pyramid[L],labels,lw,lh);
+    filter(pyramid[L],reason,labels,lw,lh);
 
     // now what's left "must" be text, so delete it from other pyrmid levels and save it
-    saveImage("./lol.bmp", lw,lh, 1, pyramid[L]);
-    saveImage("./L.bmp", lw,lh, 1, labels);
-    saveImage("./D.bmp", lw,lh, 1, dist);
-  }
 
-  //  vecSize = 200;
-  //  label(dataGray,L,width,height,30,0,vecSize,0,vecSize);
-
-  //ispc::simple(dataGray,upVec,downVec,leftVec,rightVec,temp,L,width,height,0, 16);
-
-  for(int L=0; L<4; L++){
+    // write out debug data
     char filename[20];
     sprintf(filename,"L_%d.bmp",L);
-    saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);
+    saveImage(filename, lw,lh, labels);
+    sprintf(filename,"D_%d.bmp",L);
+    saveImage(filename, lw,lh, 1, dist);
+    sprintf(filename,"res_%d.bmp",L);
+    saveImage(filename, lw,lh, 1, pyramid[L]);
+    sprintf(filename,"R_%d.bmp",L);
+    saveImage(filename, lw,lh, 1, reason);
   }
 
-  // write out
-  //saveImage("./temp.bmp", width, height, 1, temp);
   saveImage("./res.bmp", width, height, 1, dataGray);
-  //saveImage("./L.bmp", width, height, 1, L);
 
   return 0;
 }
