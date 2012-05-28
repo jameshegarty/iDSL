@@ -403,6 +403,22 @@ bool saveImageAutoLevels(const char *filename, int width, int height, int channe
   return false;
 }
 
+
+// truncates to a char
+bool saveImage(const char *filename, int width, int height, int channels, unsigned short *data){
+  unsigned char *temp = new unsigned char[width*height*channels];
+
+  for(int i=0; i<width*height*channels; i++){
+    temp[i]=data[i];
+  }
+
+  bool res = saveImage(filename,width,height,channels,temp);
+
+  delete[] temp;
+
+  return res;
+}
+
 bool saveBMPAutoLevels(const char *filename, int width, int height, int channels, float *data){
   // convert float to unsigned char
 

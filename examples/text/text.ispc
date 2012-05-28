@@ -33,12 +33,13 @@ export void simple(
   const uniform unsigned int8 rightVec[], 
   uniform unsigned int8 temp[],
   uniform unsigned int8 out[],
-  const uniform int width, uniform int height) {
+  const uniform int width, const uniform int height,
+  const uniform int startY, const uniform int endY) {
 
   uniform int32 id = 1;
 		   
   // rake along x
-  foreach(x = 1 ... width,y= 0 ... height){
+  foreach(x = 1 ... width,y= startY ... endY){
     if(in[x+y*width] != in[(x-1)+y*width]){
       if(in[x+y*width]){
         out[x+y*width]=atomic_add_global(&id,(varying int32)1);
@@ -50,7 +51,49 @@ export void simple(
     }
   }
 
+/*
   // rake along y
+  foreach(y= startY ... endY, x = 1 ... width){
+    if(in[x+y*width] != in[x+(y-1)*width]){
+      if(in[x+y*width]){
+        out[x+y*width]=atomic_add_global(&id,(varying int32)1);
+      }else{
+        out[x+y*width]=0;
+      }
+    }else{
+      out[x+y*width] = out[x+(y-1)*width];
+    }
+  }
+*/
+
+  uniform int32 rename[256];
+  //for(int i=0; i<256; i++){ rename[i]=i; }
+  foreach(i = 0 ... 256){rename[i]=i;}
+
+  // prop in y
+
+  foreach(y= startY+1 ... endY, x = 1 ... width){
+    temp[x+y*width]=out[x+y*width];
+  }
+
+  foreach(y= startY+1 ... endY){
+    foreach(x = 1 ... width){
+      int32 lab = temp[x+(y-1)*width];
+      if(lab!=0){
+        atomic_min_local(&(rename[temp[x+y*width]]),lab);
+      }
+
+      // now prop
+      //unsigned int8 offL = -leftVec[x+(y-1)*width];
+      //unsigned int8 offR = rightVec[x+(y-1)*width];
+      
+      temp[x+y*width]=rename[temp[x+y*width]];
+    }
+
+    //for(int i=0; i<256; i++){ rename[i]=i; }
+    //foreach(i = 0 ... 256){rename[i]=i;}
+  }
+
 
 //  foreach(x = 0 ... width, y= 0 ... height){
 //  foreach(x = 0 ... width){

@@ -2,6 +2,9 @@
 #include "../util.h"
 #include <algorithm>
 #include "ispc.h"
+#include "../distancetransform/distancetransform.h"
+
+const int maxLabels = 512;
 
 void SAT(unsigned char *in, unsigned int *out, int width, int height){
   out[0] = in[0];
@@ -67,6 +70,7 @@ void thresh(unsigned char *in, unsigned int *sat, float *satSq, int width, int h
 
 }
 
+/*
 void label(unsigned char *in, unsigned char *out, int width, int height, unsigned int minArea){
   const int blockSize = 8;
 
@@ -184,12 +188,11 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
 	  }
 
 	  // can't do this here
-	  /*
-	  int eq = equivClass[out[x+(y-1)*width]];
-	  if(eq!=0){
-	    out[x+(y-1)*width]=eq;
-	  }
-	  */
+	  //int eq = equivClass[out[x+(y-1)*width]];
+	  //if(eq!=0){
+	  //  out[x+(y-1)*width]=eq;
+	  //}
+	  //
 	}
 	
 	for(int i=0; i<256; i++){
@@ -206,11 +209,313 @@ void label(unsigned char *in, unsigned char *out, int width, int height, unsigne
     
   }
 }
+*/
+
+void labelProp(
+  unsigned short *out, 
+  unsigned short area[maxLabels],
+  int width, int height,
+  int startX, int endX,
+  int startY, int endY){
+
+
+  // prop y down
+  unsigned short rename[maxLabels]; // atomic
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
+  for(int y=startY+1; y<endY; y++){
+    for(int x=startX; x<endX; x++){
+      if(out[x+(y-1)*width]){
+        rename[out[x+y*width]] = std::min(rename[out[x+y*width]], out[x+(y-1)*width]);
+      }
+    }
+
+    for(int x=startX; x<endX; x++){
+      area[out[x+y*width]]--;
+      out[x+y*width] = rename[out[x+y*width]];
+      area[out[x+y*width]]++;
+    }
+
+  }
+
+  // prop y up
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
+  for(int y=endY-2; y>=startY; y--){
+    for(int x=startX; x<endX; x++){
+      if(out[x+(y+1)*width]){
+        rename[out[x+y*width]] = std::min(rename[out[x+y*width]], out[x+(y+1)*width]);
+      }
+    }
+
+    for(int x=startX; x<endX; x++){
+      area[out[x+y*width]]--;
+      out[x+y*width] = rename[out[x+y*width]];
+      area[out[x+y*width]]++;
+    }
+
+  }
+
+  // prop x right
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
+  for(int x=startX+1; x<endX; x++){
+    for(int y=startY; y<endY; y++){
+      if(out[(x-1)+y*width]){
+        rename[out[x+y*width]] = std::min(rename[out[x+y*width]], out[(x-1)+y*width]);
+      }
+    }
+
+    for(int y=startY; y<endY; y++){
+      area[out[x+y*width]]--;
+      out[x+y*width] = rename[out[x+y*width]];
+      area[out[x+y*width]]++;
+    }
+  }
+
+  // prop x left
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
+  for(int x=endY-2; x>=startX; x--){
+    for(int y=startY; y<endY; y++){
+      if(out[(x+1)+y*width]){
+        rename[out[x+y*width]] = std::min(rename[out[x+y*width]], out[(x+1)+y*width]);
+      }
+    }
+
+    for(int y=startY; y<endY; y++){
+      area[out[x+y*width]]--;
+      out[x+y*width] = rename[out[x+y*width]];
+      area[out[x+y*width]]++;
+    }
+  }
+
+}
+
+void computeArea(
+  unsigned short *labels,
+  unsigned short area[maxLabels],
+  int width,
+  int height){
+  
+  for(int i=0; i<maxLabels; i++){area[i]=0;}
+
+  for(int x=0; x<width; x++){
+    for(int y=0; y<height; y++){
+      area[labels[x+y*width]]++;
+    }
+  }
+}
+
+void label(
+  unsigned char *in, 
+  unsigned short *out, 
+  unsigned short area[maxLabels],
+  int width, int height, 
+  unsigned short firstId,
+  unsigned int minArea,
+  int startX, int endX,
+  int startY, int endY){
+
+  //  unsigned short area[maxLabels];
+  for(int i=0; i<maxLabels; i++){area[i]=0;}
+
+  bool live[maxLabels];
+  for(int i=0; i<maxLabels; i++){live[i]=false;}
+
+  // rake X
+  unsigned short id = firstId; // atomic
+
+  for(int y=startY; y<endY; y++){
+    if(in[y*width]){
+      out[y*width]=id; // atomic
+      area[id]++; // atomic
+      assert(id<maxLabels-1);
+      id++;
+
+      // save liveness
+      if(y==startY || y==endY-1){live[id-1]=true;}
+    }else{
+      out[y*width]=0;
+    }
+  }
+
+  for(int x=startX+1; x<endX; x++){
+    // this is our vector
+    for(int y=startY; y<endY; y++){
+      if(in[x+y*width] != in[(x-1)+y*width]){
+	if(in[x+y*width]){
+	  out[x+y*width]=id; // atomic
+	  area[id]++; // atomic
+	  assert(id<maxLabels-1);
+	  id++;
+
+	  // save liveness
+	  if(y==startY || y==endY-1){live[id-1]=true;}
+
+	}else{
+	  out[x+y*width]=0;
+	}
+      }else{
+	out[x+y*width] = out[(x-1)+y*width];
+	area[out[x+y*width]]++;
+      }
+    }
+  }
+
+  labelProp(out,area,width,height,startX,endX,startY,endY);
+  labelProp(out,area,width,height,startX,endX,startY,endY);
+
+  // delete stuff
+  for(int x=startX; x<endX; x++){
+    // this is our vector
+    for(int y=startY; y<endY; y++){
+      if(area[out[x+y*width]]<minArea && !live[out[x+y*width]]){
+	out[x+y*width]=0;
+	in[x+y*width]=0;
+      }
+    }
+  }
+
+  // keep area array accurate
+  for(int i=0; i<maxLabels; i++){
+    if(area[i]<minArea && !live[i]){area[i]=0;}
+  }
+}
+
+// returns the largest label
+// note: destroys area
+unsigned char condenseLabels(
+  unsigned short *labels, unsigned short area[maxLabels],
+  unsigned short firstId,
+  const int width, const int height,
+  const int startX, const int endX,
+  const int startY, const int endY){
+
+  unsigned short id=firstId;
+  area[0]=0;
+  for(int i=0; i<maxLabels; i++){
+    if(area[i]){
+      area[i]=id;
+      id++;
+    }
+  }
+
+  for(int x=startX; x<endX; x++){
+    // this is our vector
+    for(int y=startY; y<endY; y++){
+      labels[x+y*width] = area[labels[x+y*width]];
+    }
+  }
+  
+  return (id-1);
+}
 
 void invert(unsigned char *in, int width, int height){
   for(int x=1; x<width; x++){
     for(int y=1; y<height; y++){
       in[x+y*width] = (in[x+y*width]>0)?0:255;
+    }
+  }
+}
+
+void computeBB(
+  unsigned short *labels,
+  unsigned short l[maxLabels], // smallest x
+  unsigned short r[maxLabels],  // largest x
+  unsigned short t[maxLabels], // the largest y value
+  unsigned short b[maxLabels],  // the smallest y value
+  int width,
+  int height){
+
+  for(int i=0; i<maxLabels; i++){
+    l[i]=width;
+    r[i]=0;
+    t[i]=0;
+    b[i]=height;
+  }
+
+  for(int x=1; x<width; x++){
+    for(int y=1; y<height; y++){
+      int id=labels[x+y*width];
+      l[id] = std::min(l[id],(unsigned short)x);
+      r[id] = std::max(r[id],(unsigned short)x);
+      t[id] = std::max(t[id],(unsigned short)y);
+      b[id] = std::min(b[id],(unsigned short)y);
+    }
+  }
+
+}
+
+void filter(
+  unsigned char *in, 
+  unsigned short *labels, 
+  int width,
+  int height){
+
+  unsigned short area[maxLabels];
+  computeArea(labels,area,width,height);
+
+  unsigned short l[maxLabels];
+  unsigned short r[maxLabels];
+  unsigned short t[maxLabels];
+  unsigned short b[maxLabels];
+  computeBB(labels,l,r,t,b,width,height);
+
+  bool kill[maxLabels];
+  for(int i=0; i<maxLabels; i++){
+    if(area[i]>0){ // is this region still there?
+      
+      // ratio
+      int w = (r[i]-l[i])+1;
+      int h = (t[i]-b[i])+1;
+      float ratio = float(w)/float(h);
+
+      //solidity
+      float solidity = float(area[i])/float(w*h);
+
+      printf("%d %f %d %f\n",i,ratio,area[i],solidity);
+
+      if(ratio < 0.1f || ratio > 2.f || area[i]<6 || solidity < 0.25f){
+	printf("kill\n");
+	kill[i] = true;
+      }else{
+	kill[i] = false;
+      }
+    }
+  }
+
+  for(int x=0; x<width; x++){
+    for(int y=0; y<height; y++){
+      if(kill[labels[x+y*width]]){
+	in[x+y*width] = 0;
+      }
+    }
+  }
+
+}
+
+void makePyramid(
+  unsigned char *in, unsigned char ***out, int desiredLevels,
+  int width, int height){
+
+  // build space
+  *out = new unsigned char*[desiredLevels];
+  (*out)[0]=in;
+  for(int i=1; i<desiredLevels; i++){ (*out)[i]=new unsigned char[width*height/(int)pow(2,2*i)];}
+
+  // build levels
+  for(int L=1; L<desiredLevels; L++){
+    int lw = width/pow(2,L);
+    int lh = height/pow(2,L);
+
+    int lwm1 = width/pow(2,L-1);
+    
+    for(int x=0; x<lw; x++){
+      for(int y=0; y<lh; y++){
+	int cnt=0;
+	cnt = ((*out)[L-1][(x*2)+(y*2)*lwm1])?cnt+1:cnt;
+	cnt = ((*out)[L-1][(x*2+1)+(y*2)*lwm1])?cnt+1:cnt;
+	cnt = ((*out)[L-1][(x*2)+(y*2+1)*lwm1])?cnt+1:cnt;
+	cnt = ((*out)[L-1][(x*2+1)+(y*2+1)*lwm1])?cnt+1:cnt;
+	(*out)[L][x+y*lw]=(cnt>2)?255:0;
+      }
     }
   }
 }
@@ -249,7 +554,17 @@ int main(int argc, char **argv){
 
   saveImage("./resRaw.bmp", width, height, 1, dataGray);
 
+  unsigned char ** pyramid=NULL;
+  makePyramid(dataGray, &pyramid, 4, width,height);
+
+  for(int L=0; L<4; L++){
+    char filename[20];
+    sprintf(filename,"L_raw_%d.bmp",L);
+    saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);
+  }
+
   // dist trans
+  /*
   unsigned char *upVec = new unsigned char[width*height];
   unsigned char *downVec = new unsigned char[width*height];
   unsigned char *leftVec = new unsigned char[width*height];
@@ -259,17 +574,69 @@ int main(int argc, char **argv){
   saveImage("./downVec.bmp", width, height, 1, downVec);
   saveImage("./leftVec.bmp", width, height, 1, leftVec);
   saveImage("./rightVec.bmp", width, height, 1, rightVec);
+  */
 
   // label
-  unsigned char *L = new unsigned char[width*height];
-  unsigned char *temp = new unsigned char[width*height];
-  //label(dataGray,L,width,height,30);
 
-  ispc::simple(dataGray,upVec,downVec,leftVec,rightVec,temp,L,width,height);
+  //unsigned char *temp = new unsigned char[width*height];
+  int vecSize=16;
+
+  unsigned char *dist=new unsigned char[width*height];
+
+  
+  for(int L = 3; L<4; L++){
+    int lw = width/pow(2,L);
+    int lh = height/pow(2,L);
+
+    unsigned short *labels = new unsigned short[lw*lh];
+    /*    for(int bx=0; bx<width/vecSize; bx++){
+      for(int by=0; by<height/vecSize; by++){
+	label(dataGray,L,width,height,30,bx*vecSize,(bx+1)*vecSize,by*vecSize,(by+1)*vecSize);
+      }
+      }*/
+    unsigned short area[maxLabels];
+    unsigned short firstId = 1;
+
+    for(int by=0; by<ceil((float)lh/(float)vecSize); by++){
+      int endY = (by+1)*vecSize;
+      if(endY>lh){endY=lh;}
+
+      label(pyramid[L],labels,area,lw,lh,firstId,6,0,lw,vecSize*by,endY);
+      firstId=condenseLabels(labels,area,firstId,lw,lh,0,lw,vecSize*by,endY);
+      firstId++;
+      printf("ML %d\n",(int)firstId);
+    }
+    
+    labelProp(labels,area,lw,lh,0,lw,0,lh);
+    computeArea(labels,area,lw,lh);
+    int totLabels=condenseLabels(labels,area,1,lw,lh,0,lw,0,lh);
+    printf("TL %d\n",totLabels);
+
+    distanceTransform(pyramid[L],dist,0,lw,lh);
+    
+    filter(pyramid[L],labels,lw,lh);
+
+    // now what's left "must" be text, so delete it from other pyrmid levels and save it
+    saveImage("./lol.bmp", lw,lh, 1, pyramid[L]);
+    saveImage("./L.bmp", lw,lh, 1, labels);
+    saveImage("./D.bmp", lw,lh, 1, dist);
+  }
+
+  //  vecSize = 200;
+  //  label(dataGray,L,width,height,30,0,vecSize,0,vecSize);
+
+  //ispc::simple(dataGray,upVec,downVec,leftVec,rightVec,temp,L,width,height,0, 16);
+
+  for(int L=0; L<4; L++){
+    char filename[20];
+    sprintf(filename,"L_%d.bmp",L);
+    saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);
+  }
 
   // write out
+  //saveImage("./temp.bmp", width, height, 1, temp);
   saveImage("./res.bmp", width, height, 1, dataGray);
-  saveImage("./L.bmp", width, height, 1, L);
+  //saveImage("./L.bmp", width, height, 1, L);
 
   return 0;
 }
