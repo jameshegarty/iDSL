@@ -251,7 +251,7 @@ int main(int argc, char **argv){
 	
 
 	label(pyramid[L],labels,reason,area,lw,lh,minArea,vecSizeX*bx,endX,vecSizeY*by,endY);
-	firstId=condenseLabels(labels,area,1,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY);
+	firstId=condenseLabels(labels,area,firstId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY);
 	firstId++;
 	printf("ML %d\n",(int)firstId);
 	
