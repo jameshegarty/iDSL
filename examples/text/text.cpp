@@ -78,21 +78,26 @@ void invert(unsigned char *in, int width, int height){
 }
 
 void filter(
-  unsigned char *in, 
+  unsigned char **pyramid, 
+  int L, // pyramid level
   unsigned char *reason,
   unsigned short *labels, 
   int minArea,
-  int width,
-  int height){
+  int width, int height,
+  int owidth,
+  int startX, int endX,
+  int startY, int endY){
+
+  unsigned char *in = pyramid[L];
 
   unsigned short area[maxLabels];
-  computeArea(labels,area,width,height);
+  computeArea(labels,area,width,height,startX,endX,startY,endY);
 
   unsigned short l[maxLabels];
   unsigned short r[maxLabels];
   unsigned short t[maxLabels];
   unsigned short b[maxLabels];
-  computeBB(labels,l,r,t,b,width,height);
+  computeBB(labels,l,r,t,b,width,height,startX,endX,startY,endY);
 
   bool kill[maxLabels];
   unsigned char kreason[maxLabels];
@@ -115,12 +120,15 @@ void filter(
       if(ratio < 0.1f || ratio > 2.f){
 	kill[i] = true;
 	kreason[i]=50;
-      }else if(area[i]<minArea || areaPercent>0.2f){
+      }else if(area[i]<minArea){
 	kill[i] = true;
 	kreason[i]=100;
-      }else if(solidity < 0.20f){
+      }else if(areaPercent>0.2f){
 	kill[i] = true;
 	kreason[i]=150;
+      }else if(solidity < 0.20f){
+	kill[i] = true;
+	kreason[i]=200;
       }else{
 	kill[i]=false;
 	kreason[i]=0;
@@ -133,15 +141,43 @@ void filter(
   }
 
 
-  for(int x=0; x<width; x++){
-    for(int y=0; y<height; y++){
+  for(int x=startX; x<endX; x++){
+    for(int y=startY; y<endY; y++){
       if(kill[labels[x+y*width]]){
 	in[x+y*width] = 0;
-	reason[x+y*width]=kreason[labels[x+y*width]];
+	unsigned char r = kreason[labels[x+y*width]];
+	reason[x+y*width]=r;
+	labels[x+y*width]=0;
+
+	if(r==150){
+	  int sX = x*2;
+	  int eX = x*2+2;
+	  int sY = y*2;
+	  int eY = y*2+2;
+
+	  for(int l=L-1; l>=0; l--){
+	    int lw=owidth/pow(2,l);
+
+	    for(int i=sX; i<eX; i++){
+	      for(int j=sY; j<eY; j++){
+		pyramid[l][i+j*lw]=0;
+	      }
+	    }
+	    sX*=2;
+	    sY*=2;
+	    eX*=2;
+	    eY*=2;
+	  }
+	}
+
       }
     }
   }
 
+  // keep area accurate
+  for(int i=0; i<maxLabels;i++){
+    if(kill[i]){area[i]=0;}
+  }
 }
 
 void makePyramid(
@@ -150,8 +186,9 @@ void makePyramid(
 
   // build space
   *out = new unsigned char*[desiredLevels];
-  (*out)[0]=in;
-  for(int i=1; i<desiredLevels; i++){ (*out)[i]=new unsigned char[width*height/(int)pow(2,2*i)];}
+  for(int i=0; i<desiredLevels; i++){ (*out)[i]=new unsigned char[width*height/(int)pow(2,2*i)];}
+
+  memcpy((*out)[0],in,width*height);
 
   // build levels
   for(int L=1; L<desiredLevels; L++){
@@ -219,20 +256,31 @@ int main(int argc, char **argv){
 
 
   // label
-  int vecSizeY=16;
-  int vecSizeX=160;
+  int vecSizeY=32;
+  int vecSizeX=128;
 
   unsigned char *dist=new unsigned char[width*height];
   unsigned short *labels = new unsigned short[width*height];
   unsigned short area[maxLabels];
   unsigned char *reason = new unsigned char[width*height];
   unsigned char *tile = new unsigned char[width*height];
+  
+  for(int l = 3; l>=0; l--){
+    int lw = width/pow(2,l);
+    int lh = height/pow(2,l);
+    
+    // write out debug data
+    char filename[20];
+    sprintf(filename,"res_%dp2.bmp",l);
+    saveImage(filename, lw,lh, 1, pyramid[l]);
+  }
 
   for(int L = 3; L>=0; L--){
     int lw = width/pow(2,L);
     int lh = height/pow(2,L);
 
-    for(int i=0; i<lw*lh; i++){reason[i]=0;}
+    // clear out labels so that we can do progressive cleanup passes
+    for(int i=0; i<lw*lh; i++){reason[i]=0;labels[i]=0;}
 
     unsigned short firstId = 1;
 
@@ -241,18 +289,29 @@ int main(int argc, char **argv){
     int minArea = 6;
     if(L<2){minArea = 30;}
 
-    for(int by=0; by<ceil((float)lh/(float)vecSizeY); by++){
-      for(int bx=0; bx<ceil((float)lw/(float)vecSizeX); bx++){
-	int endY = (by+1)*vecSizeY;
-	if(endY>lh){endY=lh;}
-	
+    int nTilesX = ceil((float)lw/(float)vecSizeX);
+    int nTilesY = ceil((float)lh/(float)vecSizeY);
+
+    int lastFixup = 0;
+
+    for(int by=0; by<nTilesY; by++){
+      int endY = (by+1)*vecSizeY;
+      if(endY>lh){endY=lh;}
+      
+      bool fixupRanThisRow = false;
+
+      for(int bx=0; bx<nTilesX; bx++){
+
 	int endX = (bx+1)*vecSizeX;
 	if(endX>lw){endX=lw;}
-	
 
 	label(pyramid[L],labels,reason,area,lw,lh,minArea,vecSizeX*bx,endX,vecSizeY*by,endY);
-	firstId=condenseLabels(labels,area,firstId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY);
-	firstId++;
+	unsigned short lastId=0;
+	if(!condenseLabels(labels,area,firstId,&lastId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY)){
+	  printf("Error: ran out of labels!\n");
+	  goto writeout;  // an exception occured
+	}
+	firstId=lastId+1;
 	printf("ML %d\n",(int)firstId);
 	
 	// for debugging
@@ -263,21 +322,36 @@ int main(int argc, char **argv){
 	}
 
 	tileId++;
+
+	if(firstId > (maxLabels*4)/5 && !fixupRanThisRow){
+	  labelProp(labels,area,lw,lh,0,lw,0,endY);
+	  filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,lastFixup,endY);
+	  computeArea(labels,area,lw,lh,0,lw,0,endY);
+	  condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,endY);
+	  firstId++;
+	  printf("fixup TL %d\n",firstId);
+	  
+	  lastFixup = (by+1)*vecSizeY;
+	  fixupRanThisRow=true;
+	}
+	
       }
+
     }
     
     // fix labels across region boundries
     labelProp(labels,area,lw,lh,0,lw,0,lh);
-    computeArea(labels,area,lw,lh);
-    int totLabels=condenseLabels(labels,area,1,lw,lh,0,lw,0,lh);
-    printf("TL %d\n",totLabels);
+    computeArea(labels,area,lw,lh,0,lw,0,lh);
+    condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,lh);
+    printf("TL %d\n",firstId);
     
     distanceTransform(pyramid[L],dist,0,lw,lh);
     
-    filter(pyramid[L],reason,labels,minArea,lw,lh);
+    filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,0,lh);
 
     // now what's left "must" be text, so delete it from other pyrmid levels and save it
-
+    
+    writeout:
     // write out debug data
     char filename[20];
     sprintf(filename,"L_%d.bmp",L);
@@ -290,6 +364,36 @@ int main(int argc, char **argv){
     saveImage(filename, lw,lh, 1, reason);
     sprintf(filename,"T_%d.bmp",L);
     saveImage(filename, lw,lh, 1, tile);
+
+    if(L==3){
+      for(int l = 2; l>=0; l--){
+	int lw = width/pow(2,l);
+	int lh = height/pow(2,l);
+	
+	// write out debug data
+	char filename[20];
+	sprintf(filename,"res_%dp.bmp",l);
+	saveImage(filename, lw,lh, 1, pyramid[l]);
+      }
+    }
+    
+  }
+  
+  for(int y=0; y<height; y++){
+    for(int x=0; x<width; x++){
+      int count=0;
+      for(int l=0; l<4; l++){
+	int lx = x/pow(2,l);
+	int ly = y/pow(2,l);
+
+	int lw = width/pow(2,l);
+
+	if(pyramid[l][lx+ly*lw]){count++;}
+      }
+      if(count<2){
+	dataGray[x+y*width]=0;
+      }
+    }
   }
 
   saveImage("./res.bmp", width, height, 1, dataGray);
