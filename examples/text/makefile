@@ -1,4 +1,4 @@
-SRC := text.cpp ../util.cpp
+SRC := text.cpp ../util.cpp ../label/label.cpp
 EXECUTABLE := text
 OBJECTS := ispc.o
 
