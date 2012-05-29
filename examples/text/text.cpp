@@ -5,6 +5,8 @@
 #include "../distancetransform/distancetransform.h"
 #include "../label/label.h"
 
+const int pyramidLevels=4;
+
 void SAT(unsigned char *in, unsigned int *out, int width, int height){
   out[0] = in[0];
 
@@ -113,7 +115,7 @@ void filter(
       //solidity
       float solidity = float(area[i])/float(w*h);
       
-      printf("%d %f %d %f\n",i,ratio,area[i],solidity);
+      //printf("%d %f %d %f\n",i,ratio,area[i],solidity);
       
       float areaPercent = float(area[i])/float(width*height);
       
@@ -182,6 +184,7 @@ void filter(
 
 void makePyramid(
   unsigned char *in, unsigned char ***out, int desiredLevels,
+  int thresh,
   int width, int height){
 
   // build space
@@ -204,7 +207,7 @@ void makePyramid(
 	cnt = ((*out)[L-1][(x*2+1)+(y*2)*lwm1])?cnt+1:cnt;
 	cnt = ((*out)[L-1][(x*2)+(y*2+1)*lwm1])?cnt+1:cnt;
 	cnt = ((*out)[L-1][(x*2+1)+(y*2+1)*lwm1])?cnt+1:cnt;
-	(*out)[L][x+y*lw]=(cnt>=2)?255:0; // used to be >, but this makes larger regions
+	(*out)[L][x+y*lw]=(cnt>=thresh)?255:0; // used to be >, but this makes larger regions
       }
     }
   }
@@ -212,15 +215,20 @@ void makePyramid(
 
 int main(int argc, char **argv){
 
-  if(argc != 5){
+  if(argc != 9){
     printf("wrong # args\n");
+    printf("inputfile outDir(./lol/) invert (0 or 1) k*1000 windowRadius gaussPyramidThresh(>= survive) finalMixThresh(>= survive) writeDebugImages(0 or 1)\n");
   }
 
   int width, height, channels;
   unsigned char *data;
-  int inv = atoi(argv[2]);
-  float k = float(atoi(argv[3]))/1000.f;
-  int window = atoi(argv[4]);
+  char *dir = argv[2];
+  int inv = atoi(argv[3]);
+  float k = float(atoi(argv[4]))/1000.f;
+  int window = atoi(argv[5]);
+  int gaussPyramidThresh = atoi(argv[6]);
+  int finalMixThresh = atoi(argv[7]);
+  bool debugImages = atoi(argv[8]);
 
   bool res = loadImage(argv[1], &width, &height, &channels, &data);
 
@@ -228,6 +236,8 @@ int main(int argc, char **argv){
     printf("error reading image\n");
     return 1;
   }
+
+  printf("start\n");
 
   // to grayscale
   unsigned char *dataGray = new unsigned char[width*height];
@@ -243,15 +253,17 @@ int main(int argc, char **argv){
   thresh(dataGray, sat, satSquared, width, height, k, window);
   if(inv){invert(dataGray,width,height);}
 
-  saveImage("./resRaw.bmp", width, height, 1, dataGray);
+  char filename[200];
+  sprintf(filename,"%sresRaw.bmp",dir);
+  if(debugImages){saveImage(filename, width, height, 1, dataGray);}
 
   unsigned char ** pyramid=NULL;
-  makePyramid(dataGray, &pyramid, 4, width,height);
+  makePyramid(dataGray, &pyramid, pyramidLevels, gaussPyramidThresh, width,height);
 
-  for(int L=0; L<4; L++){
-    char filename[20];
-    sprintf(filename,"res_raw_%d.bmp",L);
-    saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);
+  for(int L=0; L<pyramidLevels; L++){
+    char filename[200];
+    sprintf(filename,"%sres_raw_%d.bmp",dir,L);
+    if(debugImages){saveImage(filename,width/pow(2,L),height/pow(2,L),1,pyramid[L]);}
   }
 
 
@@ -265,17 +277,17 @@ int main(int argc, char **argv){
   unsigned char *reason = new unsigned char[width*height];
   unsigned char *tile = new unsigned char[width*height];
   
-  for(int l = 3; l>=0; l--){
+  for(int l = pyramidLevels-1; l>=0; l--){
     int lw = width/pow(2,l);
     int lh = height/pow(2,l);
     
     // write out debug data
-    char filename[20];
-    sprintf(filename,"res_%dp2.bmp",l);
-    saveImage(filename, lw,lh, 1, pyramid[l]);
+    char filename[200];
+    sprintf(filename,"%sres_%dp2.bmp",dir,l);
+    if(debugImages){saveImage(filename, lw,lh, 1, pyramid[l]);}
   }
 
-  for(int L = 3; L>=0; L--){
+  for(int L = pyramidLevels-1; L>=0; L--){
     int lw = width/pow(2,L);
     int lh = height/pow(2,L);
 
@@ -312,7 +324,7 @@ int main(int argc, char **argv){
 	  goto writeout;  // an exception occured
 	}
 	firstId=lastId+1;
-	printf("ML %d\n",(int)firstId);
+	//printf("ML %d\n",(int)firstId);
 	
 	// for debugging
 	for(int x=vecSizeX*bx; x<endX; x++){
@@ -343,7 +355,7 @@ int main(int argc, char **argv){
     labelProp(labels,area,lw,lh,0,lw,0,lh);
     computeArea(labels,area,lw,lh,0,lw,0,lh);
     condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,lh);
-    printf("TL %d\n",firstId);
+    //printf("TL %d\n",firstId);
     
     distanceTransform(pyramid[L],dist,0,lw,lh);
     
@@ -353,27 +365,29 @@ int main(int argc, char **argv){
     
     writeout:
     // write out debug data
-    char filename[20];
-    sprintf(filename,"L_%d.bmp",L);
-    saveImage(filename, lw,lh, labels);
-    sprintf(filename,"D_%d.bmp",L);
-    saveImage(filename, lw,lh, 1, dist);
-    sprintf(filename,"res_%d.bmp",L);
-    saveImage(filename, lw,lh, 1, pyramid[L]);
-    sprintf(filename,"R_%d.bmp",L);
-    saveImage(filename, lw,lh, 1, reason);
-    sprintf(filename,"T_%d.bmp",L);
-    saveImage(filename, lw,lh, 1, tile);
+    char filename[200];
+    if(debugImages){
+      sprintf(filename,"%sL_%d.bmp",dir,L);
+      saveImage(filename, lw,lh, labels);
+      sprintf(filename,"%sD_%d.bmp",dir,L);
+      saveImage(filename, lw,lh, 1, dist);
+      sprintf(filename,"%sres_%d.bmp",dir,L);
+      saveImage(filename, lw,lh, 1, pyramid[L]);
+      sprintf(filename,"%sR_%d.bmp",dir,L);
+      saveImage(filename, lw,lh, 1, reason);
+      sprintf(filename,"%sT_%d.bmp",dir,L);
+      saveImage(filename, lw,lh, 1, tile);
+    }
 
-    if(L==3){
+    if(L==pyramidLevels-1){
       for(int l = 2; l>=0; l--){
 	int lw = width/pow(2,l);
 	int lh = height/pow(2,l);
 	
 	// write out debug data
-	char filename[20];
-	sprintf(filename,"res_%dp.bmp",l);
-	saveImage(filename, lw,lh, 1, pyramid[l]);
+	char filename[200];
+	sprintf(filename,"%sres_%dp.bmp",dir,l);
+	if(debugImages){saveImage(filename, lw,lh, 1, pyramid[l]);}
       }
     }
     
@@ -382,7 +396,7 @@ int main(int argc, char **argv){
   for(int y=0; y<height; y++){
     for(int x=0; x<width; x++){
       int count=0;
-      for(int l=0; l<4; l++){
+      for(int l=0; l<pyramidLevels; l++){
 	int lx = x/pow(2,l);
 	int ly = y/pow(2,l);
 
@@ -390,13 +404,14 @@ int main(int argc, char **argv){
 
 	if(pyramid[l][lx+ly*lw]){count++;}
       }
-      if(count<2){
+      if(count<finalMixThresh){
 	dataGray[x+y*width]=0;
       }
     }
   }
 
-  saveImage("./res.bmp", width, height, 1, dataGray);
+  sprintf(filename,"%sres.bmp",dir);
+  saveImage(filename, width, height, 1, dataGray);
 
   return 0;
 }
