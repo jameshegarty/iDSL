@@ -303,6 +303,7 @@ void labelSerial(
       out[x]=0;
     }else if(in[x-1]!=in[x]){
       out[x]=id;
+      assert(id<maxLabels);
       id++;
     }else{
       out[x]=out[x-1];
@@ -314,6 +315,7 @@ void labelSerial(
       out[y*width]=0;
     }else if(in[(y-1)*width]!=in[y*width]){
       out[y*width]=id;
+      assert(id<maxLabels);
       id++;
     }else{
       out[y*width]=out[(y-1)*width];
@@ -327,6 +329,7 @@ void labelSerial(
 	out[x+y*width]=0;
       }else if( !in[(x-1)+y*width] && !in[x+(y-1)*width] ){
 	out[x+y*width]=id;
+	assert(id<maxLabels);
 	id++;
       }else if(in[(x-1)+y*width] && in[x+(y-1)*width]){
 	// get to the bottom of this!
@@ -341,8 +344,8 @@ void labelSerial(
 	  }
 	}
 
-	while(rename[westLabel]!=westLabel){westLabel = rename[westLabel];}
-	while(rename[northLabel]!=northLabel){northLabel = rename[northLabel];}
+	while(rename[westLabel]!=westLabel){westLabel = rename[westLabel];assert(westLabel>0);assert(westLabel<maxLabels);}
+	while(rename[northLabel]!=northLabel){northLabel = rename[northLabel];assert(northLabel>0);assert(northLabel<maxLabels);}
 
 	unsigned short newLabel = std::min(westLabel,northLabel);
 	if(westLabel!=northLabel){

@@ -11,6 +11,9 @@ default:
 	make -C motionestimation $@; \
 	make -C rotate $@; \
 	make -C trim $@; \
+	make -C lineDetection $@; \
+	make -C label $@; \
+	make -C text $@; \
 
 debug:
 	make -C backAdvect $@; \
@@ -24,6 +27,9 @@ debug:
 	make -C lucaskanade $@; \
 	make -C motionestimation $@; \
 	make -C rotate $@; \
+	make -C lineDetection $@; \
+	make -C label $@; \
+	make -C text $@; \
 
 clean:
 	make -C backAdvect $@; \
@@ -38,3 +44,6 @@ clean:
 	make -C motionestimation $@; \
 	make -C rotate $@; \
 	make -C trim $@; \
+	make -C lineDetection $@; \
+	make -C label $@; \
+	make -C text $@; \

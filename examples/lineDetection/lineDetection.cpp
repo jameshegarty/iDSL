@@ -161,21 +161,22 @@ void findLines(
   }
 }
 
-const int maxLabels = 4096;
+const int maxLabels = 32768;
 
 int main(int argc, char **argv){
 
-  if(argc!=6){
-    printf("Usage: label image.type minDimRatio*100(typically95, lower is more lenient) \n");
+  if(argc!=7){
+    printf("Usage: label image.type out.type minDimRatio*100(typically95, lower is more lenient) \n");
     printf("charSpacing*10(typically 20-40, higher is more lenient)\n");
     printf("# of matches(>=)(typically 6) areaRatio*100 (typically 60, low is more lenient)\n");
     return 1;
   }
 
-  int minRatio = atoi(argv[2]);
-  int charSpacing = atoi(argv[3]);
-  int minMatches = atoi(argv[4]);
-  int areaRatio = atoi(argv[5]);
+  char *outFilename = argv[2];
+  int minRatio = atoi(argv[3]);
+  int charSpacing = atoi(argv[4]);
+  int minMatches = atoi(argv[5]);
+  int areaRatio = atoi(argv[6]);
 
   bool a = ellipseRay(5,0,1,1,0,0,0,1);
   assert(!a);
@@ -215,8 +216,8 @@ int main(int argc, char **argv){
   
   findLines(dataGray,out,width,height,float(minRatio)*0.01f,float(charSpacing)*0.1f,minMatches,float(areaRatio)*0.01f,maxLabels);
 
-  res = saveImage("out.bmp", width, height, 1, dataGray);
-  res = saveImage("lab.bmp", width, height, out);
+  res = saveImage(outFilename, width, height, 1, dataGray);
+  //res = saveImage("lab.bmp", width, height, out);
 
   delete[] out;
   delete[] data;
