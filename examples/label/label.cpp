@@ -7,10 +7,11 @@
 
 void labelProp(
   unsigned short *out, 
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width, int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
 
   // prop y down
@@ -84,11 +85,12 @@ void labelProp(
 
 void computeArea(
   unsigned short *labels,
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width,
   int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
   
   for(int i=0; i<maxLabels; i++){area[i]=0;}
 
@@ -104,11 +106,12 @@ void label(
   unsigned char *in, 
   unsigned short *out, 
   unsigned char *reason, 
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width, int height, 
   unsigned int minArea,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
   //  unsigned short area[maxLabels];
   for(int i=0; i<maxLabels; i++){area[i]=0;}
@@ -147,12 +150,12 @@ void label(
     }
   }
 
-  assert(checkArea(out,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(out,area,width,height,startX,endX,startY,endY,maxLabels));
 
-  labelProp(out,area,width,height,startX,endX,startY,endY);
-  labelProp(out,area,width,height,startX,endX,startY,endY);
+  labelProp(out,area,width,height,startX,endX,startY,endY,maxLabels);
+  labelProp(out,area,width,height,startX,endX,startY,endY,maxLabels);
 
-  assert(checkArea(out,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(out,area,width,height,startX,endX,startY,endY,maxLabels));
 
   bool live[maxLabels];
   for(int i=0; i<maxLabels; i++){live[i]=false;}
@@ -187,10 +190,11 @@ void label(
 }
 
 bool checkArea(
-  unsigned short *labels, unsigned short area[maxLabels],
+  unsigned short *labels, unsigned short area[],
   const int width, const int height,
   const int startX, const int endX,
-  const int startY, const int endY){
+  const int startY, const int endY,
+  int maxLabels){
 
   unsigned short newArea[maxLabels];
 
@@ -216,14 +220,15 @@ bool checkArea(
 // returns the largest label
 // note: destroys area array
 bool condenseLabels(
-  unsigned short *labels, unsigned short area[maxLabels],
+  unsigned short *labels, unsigned short area[],
   unsigned short firstId,
   unsigned short* lastId,
   const int width, const int height,
   const int startX, const int endX,
-  const int startY, const int endY){
+  const int startY, const int endY,
+  int maxLabels){
 
-  assert(checkArea(labels,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(labels,area,width,height,startX,endX,startY,endY,maxLabels));
 
   unsigned short id=firstId;
   area[0]=0;
@@ -249,14 +254,15 @@ bool condenseLabels(
 
 void computeBB(
   unsigned short *labels,
-  unsigned short l[maxLabels], // smallest x
-  unsigned short r[maxLabels],  // largest x
-  unsigned short t[maxLabels], // the largest y value
-  unsigned short b[maxLabels],  // the smallest y value
+  unsigned short l[], // smallest x
+  unsigned short r[],  // largest x
+  unsigned short t[], // the largest y value
+  unsigned short b[],  // the smallest y value
   int width,
   int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
   for(int i=0; i<maxLabels; i++){
     l[i]=width;
@@ -282,10 +288,11 @@ void computeBB(
 void labelSerial(
   unsigned char *in,
   unsigned short *out,
-  int width, int height){
+  int width, int height,
+  int maxLabels){
 
-  unsigned short rename[maxSerialLabels];
-  for(int i=0; i<maxSerialLabels; i++){rename[i]=i;}
+  unsigned short rename[maxLabels];
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
 
   int id=1;
 
@@ -358,7 +365,7 @@ void labelSerial(
     }
   }
 
-  for(int i=0; i<maxSerialLabels;i++){
+  for(int i=0; i<maxLabels;i++){
     int lab = rename[i];
     while(rename[lab]!=lab){lab = rename[lab];}
     rename[i]=lab;
