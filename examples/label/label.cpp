@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "../util.h"
 
 void labelProp(
   unsigned short *out, 
@@ -274,4 +275,98 @@ void computeBB(
     }
   }
 
+}
+
+
+
+void labelSerial(
+  unsigned char *in,
+  unsigned short *out,
+  int width, int height){
+
+  unsigned short rename[maxSerialLabels];
+  for(int i=0; i<maxSerialLabels; i++){rename[i]=i;}
+
+  int id=1;
+
+  if(in[0]){out[0]=id;id++;}else{out[0]=0;}
+
+  for(int x=1; x<width; x++){
+    if(in[x]==0){
+      out[x]=0;
+    }else if(in[x-1]!=in[x]){
+      out[x]=id;
+      id++;
+    }else{
+      out[x]=out[x-1];
+    }
+  }
+
+  for(int y=1; y<height; y++){
+    if(in[y*width]==0){
+      out[y*width]=0;
+    }else if(in[(y-1)*width]!=in[y*width]){
+      out[y*width]=id;
+      id++;
+    }else{
+      out[y*width]=out[(y-1)*width];
+    }
+  }
+
+  for(int y=1; y<height; y++){
+    for(int x=1; x<width; x++){
+
+      if(in[x+y*width]==0){
+	out[x+y*width]=0;
+      }else if( !in[(x-1)+y*width] && !in[x+(y-1)*width] ){
+	out[x+y*width]=id;
+	id++;
+      }else if(in[(x-1)+y*width] && in[x+(y-1)*width]){
+	// get to the bottom of this!
+	unsigned short owestLabel = out[(x-1)+y*width];
+	unsigned short westLabel = owestLabel;
+	unsigned short onorthLabel = out[x+(y-1)*width];
+	unsigned short northLabel = onorthLabel;
+
+	if(westLabel!=northLabel){
+	  for(int i=0; i<id; i++){
+	    //	    printf("%d : %d\n",i,rename[i]);
+	  }
+	}
+
+	while(rename[westLabel]!=westLabel){westLabel = rename[westLabel];}
+	while(rename[northLabel]!=northLabel){northLabel = rename[northLabel];}
+
+	unsigned short newLabel = std::min(westLabel,northLabel);
+	if(westLabel!=northLabel){
+	  //	  printf("%d %d %d %d %d\n",owestLabel,westLabel,onorthLabel,northLabel,newLabel);
+	}
+	assert(newLabel>0);
+
+	out[x+y*width]=newLabel;
+	rename[westLabel]=newLabel;
+	rename[northLabel]=newLabel;
+
+      }else if( !in[(x-1)+y*width] && in[x+(y-1)*width]){
+	out[x+y*width] = out[x+(y-1)*width];
+      }else if(in[(x-1)+y*width]){
+	out[x+y*width]=out[(x-1)+y*width];
+      }else{
+	printf("%d %d %d %d %d\n",in[(x-1)+y*width],in[x+(y-1)*width],in[x+y*width],out[(x-1)+y*width],out[x+(y-1)*width]);
+	assert(false);
+      }
+    }
+  }
+
+  for(int i=0; i<maxSerialLabels;i++){
+    int lab = rename[i];
+    while(rename[lab]!=lab){lab = rename[lab];}
+    rename[i]=lab;
+  }
+
+  for(int y=1; y<height; y++){
+    for(int x=1; x<width; x++){
+      out[x+y*width]=rename[out[x+y*width]];
+    }
+  }
 }

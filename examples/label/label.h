@@ -1,4 +1,5 @@
 const int maxLabels = 1024; // 512
+const int maxSerialLabels = 4096;
 
 void labelProp(
   unsigned short *out, 
@@ -50,3 +51,8 @@ bool checkArea(
   const int width, const int height,
   const int startX, const int endX,
   const int startY, const int endY);
+
+void labelSerial(
+  unsigned char *in,
+  unsigned short *out,
+  int width, int height);
