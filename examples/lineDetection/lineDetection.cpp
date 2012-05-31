@@ -1,6 +1,7 @@
 #include "../label/label.h"
 #include <algorithm>
 #include <stdio.h>
+#include <vector>
 #include "../util.h"
 
 bool ellipseRay(
@@ -66,11 +67,10 @@ void findLines(
     for(int j=1; j<totalLabels; j++){
 
       float ratio = 0;
-
       if(abs(w[i]-w[j]) < abs(h[i]-h[j])){
-	ratio = float(abs(w[i]-w[i]))/std::max(float(w[i]),float(w[j]));
+	ratio = std::min(float(w[i]),float(w[j]))/std::max(float(w[i]),float(w[j]));
       }else{
-	ratio = float(abs(h[i]-h[i]))/std::max(float(h[i]),float(h[j]));
+	ratio = std::min(float(h[i]),float(h[j]))/std::max(float(h[i]),float(h[j]));
       }
 
       assert(ratio<=1.f);
@@ -78,40 +78,66 @@ void findLines(
       float dist = sqrt(pow(cx[j]-cx[i],2)+pow(cy[j]-cy[i],2));
       float minD = std::min(std::max(w[i],h[i]),std::max(w[j],h[j]));
 
-      if(ratio<minAreaRatio  && dist<minD*charSpacing && i!=j){
+      if(ratio>minAreaRatio  && dist<minD*charSpacing && i!=j){
 	int matches = 2;
 
-
+	
 	// ray from i to j
 	int ROx=cx[i];
 	int ROy=cy[i];
 	int RDx=cx[j]-cx[i];
 	int RDy=cy[j]-cy[i];
-
+	
+	std::vector<unsigned short> found;
+	found.push_back(i);
+	found.push_back(j);
+	
 	// find stuff in a line with this ray
-	for(int k=1; k<totalLabels;k++){
-	  if(ellipseRay(cx[k],cy[k],w[k],h[k],ROx,ROy,RDx,RDy)){
-
-	    float aratio = std::min((float)area[k],(float)area[j])/std::max((float)area[k],(float)area[j]);
-	    float bratio = std::min((float)area[k],(float)area[i])/std::max((float)area[k],(float)area[i]);
-	    assert(aratio<=1.f);
-	    assert(bratio<=1.f);
-
-	    float adist = sqrt(pow(cx[k]-cx[i],2)+pow(cy[k]-cy[i],2));
-	    float aminD = std::min(std::max(w[i],h[i]),std::min(w[k],h[k]));
-
-	    float bdist = sqrt(pow(cx[k]-cx[j],2)+pow(cy[k]-cy[j],2));
-	    float bminD = std::min(std::max(w[j],h[j]),std::min(w[k],h[k]));
-
-	    if( (aratio<minAreaRatio || bratio<minAreaRatio) && (adist<aminD*charSpacing || bdist<bminD*charSpacing)){
-	      matches++;
-	      definitelyText[k]=true;
+	for(int recirc=0; recirc<minMatches; recirc++){
+	  for(int k=1; k<totalLabels;k++){
+	    
+	    if(ellipseRay(cx[k],cy[k],w[k],h[k],ROx,ROy,RDx,RDy) && k!=i && k!=j){
+	      
+	      float aratio = 0;
+	      if(abs(w[i]-w[k]) < abs(h[i]-h[k])){
+		aratio = std::min(float(w[i]),float(w[k]))/std::max(float(w[i]),float(w[k]));
+	      }else{
+		aratio = std::min(float(h[i]),float(h[k]))/std::max(float(h[i]),float(h[k]));
+	      }
+	      
+	      float bratio = 0;
+	      if(abs(w[k]-w[j]) < abs(h[k]-h[j])){
+		bratio = std::min(float(w[k]),float(w[j]))/std::max(float(w[k]),float(w[j]));
+	      }else{
+		bratio = std::min(float(h[k]),float(h[j]))/std::max(float(h[k]),float(h[j]));
+	      }
+	      
+	      
+	      //float aratio = std::min((float)area[k],(float)area[j])/std::max((float)area[k],(float)area[j]);
+	      //float bratio = std::min((float)area[k],(float)area[i])/std::max((float)area[k],(float)area[i]);
+	      assert(aratio<=1.f);
+	      assert(bratio<=1.f);
+	      
+	      float adist = sqrt(pow(cx[k]-cx[i],2)+pow(cy[k]-cy[i],2));
+	      
+	      for(unsigned int f=0; f<found.size();f++){
+		adist=std::min((double)adist,sqrt(pow(cx[k]-cx[found[f]],2)+pow(cy[k]-cy[found[f]],2)));
+	      }
+	      
+	      float aminD = std::min(std::max(w[i],h[i]),std::min(w[k],h[k]));
+	      
+	      if( (aratio>minAreaRatio || bratio>minAreaRatio) &&
+		  (adist<aminD*charSpacing)){
+		matches++;
+		found.push_back(k);
+		//definitelyText[k]=true;
+	      }
 	    }
 	  }
 	}
-	*/
+
 	if(matches>=minMatches){
-	  //printf("%f %f %f %f %f\n",ratio,minAreaRatio,dist,minD,charSpacing);
+	  //printf("%f %f %f %f %f %d\n",ratio,minAreaRatio,dist,minD,charSpacing,minMatches);
 	  definitelyText[i]=true;
 	  definitelyText[j]=true;
 	}
