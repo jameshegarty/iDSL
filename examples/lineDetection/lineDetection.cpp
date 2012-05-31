@@ -26,9 +26,10 @@ void findLines(
   unsigned short *labels,
   int width,
   int height,
-  float minAreaRatio,
+  float minDimRatio,
   float charSpacing,
   int minMatches,
+  float minAreaRatio,
   int maxLabels){
 
   unsigned short area[maxLabels];
@@ -75,10 +76,13 @@ void findLines(
 
       assert(ratio<=1.f);
 
+      float areaRatio = std::min(float(area[i]),float(area[j]))/std::max(float(area[i]),float(area[j]));
+      assert(areaRatio<=1.f);
+
       float dist = sqrt(pow(cx[j]-cx[i],2)+pow(cy[j]-cy[i],2));
       float minD = std::min(std::max(w[i],h[i]),std::max(w[j],h[j]));
 
-      if(ratio>minAreaRatio  && dist<minD*charSpacing && i!=j){
+      if(ratio>minDimRatio  && dist<minD*charSpacing && i!=j && areaRatio>minAreaRatio){
 	int matches = 2;
 
 	
@@ -119,15 +123,17 @@ void findLines(
 	      assert(bratio<=1.f);
 	      
 	      float adist = sqrt(pow(cx[k]-cx[i],2)+pow(cy[k]-cy[i],2));
-	      
+	      float areaRatio = std::min(float(area[i]),float(area[k]))/std::max(float(area[i]),float(area[k]));
+
 	      for(unsigned int f=0; f<found.size();f++){
 		adist=std::min((double)adist,sqrt(pow(cx[k]-cx[found[f]],2)+pow(cy[k]-cy[found[f]],2)));
+	        areaRatio = std::min(areaRatio,std::min(float(area[found[f]]),float(area[k]))/std::max(float(area[found[f]]),float(area[k])));	      
 	      }
 	      
 	      float aminD = std::min(std::max(w[i],h[i]),std::min(w[k],h[k]));
 	      
-	      if( (aratio>minAreaRatio || bratio>minAreaRatio) &&
-		  (adist<aminD*charSpacing)){
+	      if( (aratio>minDimRatio || bratio>minDimRatio) &&
+		  (adist<aminD*charSpacing) && areaRatio>minAreaRatio){
 		matches++;
 		found.push_back(k);
 		//definitelyText[k]=true;
@@ -159,14 +165,17 @@ const int maxLabels = 4096;
 
 int main(int argc, char **argv){
 
-  if(argc!=5){
-    printf("Usage: label image.type minRatio*100 charSpacing*10(typically 2-4) matches(>=)\n");
+  if(argc!=6){
+    printf("Usage: label image.type minDimRatio*100(typically95, lower is more lenient) \n");
+    printf("charSpacing*10(typically 20-40, higher is more lenient)\n");
+    printf("# of matches(>=)(typically 6) areaRatio*100 (typically 60, low is more lenient)\n");
     return 1;
   }
 
   int minRatio = atoi(argv[2]);
   int charSpacing = atoi(argv[3]);
   int minMatches = atoi(argv[4]);
+  int areaRatio = atoi(argv[5]);
 
   bool a = ellipseRay(5,0,1,1,0,0,0,1);
   assert(!a);
@@ -184,6 +193,10 @@ int main(int argc, char **argv){
 
   bool res = loadImage(argv[1], &width, &height, &channels, &data);
 
+  if(!res){
+    printf("error loading image\n");
+  }
+
   unsigned char *dataGray= NULL;
 
   if(channels==3){
@@ -200,7 +213,7 @@ int main(int argc, char **argv){
 
   labelSerial(dataGray,out,width,height,maxLabels);
   
-  findLines(dataGray,out,width,height,float(minRatio)*0.01f,float(charSpacing)*0.1f,minMatches,maxLabels);
+  findLines(dataGray,out,width,height,float(minRatio)*0.01f,float(charSpacing)*0.1f,minMatches,float(areaRatio)*0.01f,maxLabels);
 
   res = saveImage("out.bmp", width, height, 1, dataGray);
   res = saveImage("lab.bmp", width, height, out);
