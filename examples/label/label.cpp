@@ -3,13 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "../util.h"
 
 void labelProp(
   unsigned short *out, 
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width, int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
 
   // prop y down
@@ -83,11 +85,12 @@ void labelProp(
 
 void computeArea(
   unsigned short *labels,
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width,
   int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
   
   for(int i=0; i<maxLabels; i++){area[i]=0;}
 
@@ -103,11 +106,12 @@ void label(
   unsigned char *in, 
   unsigned short *out, 
   unsigned char *reason, 
-  unsigned short area[maxLabels],
+  unsigned short area[],
   int width, int height, 
   unsigned int minArea,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
   //  unsigned short area[maxLabels];
   for(int i=0; i<maxLabels; i++){area[i]=0;}
@@ -146,12 +150,12 @@ void label(
     }
   }
 
-  assert(checkArea(out,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(out,area,width,height,startX,endX,startY,endY,maxLabels));
 
-  labelProp(out,area,width,height,startX,endX,startY,endY);
-  labelProp(out,area,width,height,startX,endX,startY,endY);
+  labelProp(out,area,width,height,startX,endX,startY,endY,maxLabels);
+  labelProp(out,area,width,height,startX,endX,startY,endY,maxLabels);
 
-  assert(checkArea(out,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(out,area,width,height,startX,endX,startY,endY,maxLabels));
 
   bool live[maxLabels];
   for(int i=0; i<maxLabels; i++){live[i]=false;}
@@ -186,10 +190,11 @@ void label(
 }
 
 bool checkArea(
-  unsigned short *labels, unsigned short area[maxLabels],
+  unsigned short *labels, unsigned short area[],
   const int width, const int height,
   const int startX, const int endX,
-  const int startY, const int endY){
+  const int startY, const int endY,
+  int maxLabels){
 
   unsigned short newArea[maxLabels];
 
@@ -215,14 +220,15 @@ bool checkArea(
 // returns the largest label
 // note: destroys area array
 bool condenseLabels(
-  unsigned short *labels, unsigned short area[maxLabels],
+  unsigned short *labels, unsigned short area[],
   unsigned short firstId,
   unsigned short* lastId,
   const int width, const int height,
   const int startX, const int endX,
-  const int startY, const int endY){
+  const int startY, const int endY,
+  int maxLabels){
 
-  assert(checkArea(labels,area,width,height,startX,endX,startY,endY));
+  assert(checkArea(labels,area,width,height,startX,endX,startY,endY,maxLabels));
 
   unsigned short id=firstId;
   area[0]=0;
@@ -248,14 +254,15 @@ bool condenseLabels(
 
 void computeBB(
   unsigned short *labels,
-  unsigned short l[maxLabels], // smallest x
-  unsigned short r[maxLabels],  // largest x
-  unsigned short t[maxLabels], // the largest y value
-  unsigned short b[maxLabels],  // the smallest y value
+  unsigned short l[], // smallest x
+  unsigned short r[],  // largest x
+  unsigned short t[], // the largest y value
+  unsigned short b[],  // the smallest y value
   int width,
   int height,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
   for(int i=0; i<maxLabels; i++){
     l[i]=width;
@@ -274,4 +281,99 @@ void computeBB(
     }
   }
 
+}
+
+
+
+void labelSerial(
+  unsigned char *in,
+  unsigned short *out,
+  int width, int height,
+  int maxLabels){
+
+  unsigned short rename[maxLabels];
+  for(int i=0; i<maxLabels; i++){rename[i]=i;}
+
+  int id=1;
+
+  if(in[0]){out[0]=id;id++;}else{out[0]=0;}
+
+  for(int x=1; x<width; x++){
+    if(in[x]==0){
+      out[x]=0;
+    }else if(in[x-1]!=in[x]){
+      out[x]=id;
+      id++;
+    }else{
+      out[x]=out[x-1];
+    }
+  }
+
+  for(int y=1; y<height; y++){
+    if(in[y*width]==0){
+      out[y*width]=0;
+    }else if(in[(y-1)*width]!=in[y*width]){
+      out[y*width]=id;
+      id++;
+    }else{
+      out[y*width]=out[(y-1)*width];
+    }
+  }
+
+  for(int y=1; y<height; y++){
+    for(int x=1; x<width; x++){
+
+      if(in[x+y*width]==0){
+	out[x+y*width]=0;
+      }else if( !in[(x-1)+y*width] && !in[x+(y-1)*width] ){
+	out[x+y*width]=id;
+	id++;
+      }else if(in[(x-1)+y*width] && in[x+(y-1)*width]){
+	// get to the bottom of this!
+	unsigned short owestLabel = out[(x-1)+y*width];
+	unsigned short westLabel = owestLabel;
+	unsigned short onorthLabel = out[x+(y-1)*width];
+	unsigned short northLabel = onorthLabel;
+
+	if(westLabel!=northLabel){
+	  for(int i=0; i<id; i++){
+	    //	    printf("%d : %d\n",i,rename[i]);
+	  }
+	}
+
+	while(rename[westLabel]!=westLabel){westLabel = rename[westLabel];}
+	while(rename[northLabel]!=northLabel){northLabel = rename[northLabel];}
+
+	unsigned short newLabel = std::min(westLabel,northLabel);
+	if(westLabel!=northLabel){
+	  //	  printf("%d %d %d %d %d\n",owestLabel,westLabel,onorthLabel,northLabel,newLabel);
+	}
+	assert(newLabel>0);
+
+	out[x+y*width]=newLabel;
+	rename[westLabel]=newLabel;
+	rename[northLabel]=newLabel;
+
+      }else if( !in[(x-1)+y*width] && in[x+(y-1)*width]){
+	out[x+y*width] = out[x+(y-1)*width];
+      }else if(in[(x-1)+y*width]){
+	out[x+y*width]=out[(x-1)+y*width];
+      }else{
+	printf("%d %d %d %d %d\n",in[(x-1)+y*width],in[x+(y-1)*width],in[x+y*width],out[(x-1)+y*width],out[x+(y-1)*width]);
+	assert(false);
+      }
+    }
+  }
+
+  for(int i=0; i<maxLabels;i++){
+    int lab = rename[i];
+    while(rename[lab]!=lab){lab = rename[lab];}
+    rename[i]=lab;
+  }
+
+  for(int y=1; y<height; y++){
+    for(int x=1; x<width; x++){
+      out[x+y*width]=rename[out[x+y*width]];
+    }
+  }
 }

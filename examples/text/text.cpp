@@ -6,6 +6,7 @@
 #include "../label/label.h"
 
 const int pyramidLevels=4;
+const int maxLabels = 1024;
 
 void SAT(unsigned char *in, unsigned int *out, int width, int height){
   out[0] = in[0];
@@ -88,18 +89,19 @@ void filter(
   int width, int height,
   int owidth,
   int startX, int endX,
-  int startY, int endY){
+  int startY, int endY,
+  int maxLabels){
 
   unsigned char *in = pyramid[L];
 
   unsigned short area[maxLabels];
-  computeArea(labels,area,width,height,startX,endX,startY,endY);
+  computeArea(labels,area,width,height,startX,endX,startY,endY,maxLabels);
 
   unsigned short l[maxLabels];
   unsigned short r[maxLabels];
   unsigned short t[maxLabels];
   unsigned short b[maxLabels];
-  computeBB(labels,l,r,t,b,width,height,startX,endX,startY,endY);
+  computeBB(labels,l,r,t,b,width,height,startX,endX,startY,endY,maxLabels);
 
   bool kill[maxLabels];
   unsigned char kreason[maxLabels];
@@ -317,9 +319,9 @@ int main(int argc, char **argv){
 	int endX = (bx+1)*vecSizeX;
 	if(endX>lw){endX=lw;}
 
-	label(pyramid[L],labels,reason,area,lw,lh,minArea,vecSizeX*bx,endX,vecSizeY*by,endY);
+	label(pyramid[L],labels,reason,area,lw,lh,minArea,vecSizeX*bx,endX,vecSizeY*by,endY,maxLabels);
 	unsigned short lastId=0;
-	if(!condenseLabels(labels,area,firstId,&lastId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY)){
+	if(!condenseLabels(labels,area,firstId,&lastId,lw,lh,vecSizeX*bx,endX,vecSizeY*by,endY,maxLabels)){
 	  printf("Error: ran out of labels!\n");
 	  goto writeout;  // an exception occured
 	}
@@ -336,10 +338,10 @@ int main(int argc, char **argv){
 	tileId++;
 
 	if(firstId > (maxLabels*4)/5 && !fixupRanThisRow){
-	  labelProp(labels,area,lw,lh,0,lw,0,endY);
-	  filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,lastFixup,endY);
-	  computeArea(labels,area,lw,lh,0,lw,0,endY);
-	  condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,endY);
+	  labelProp(labels,area,lw,lh,0,lw,0,endY,maxLabels);
+	  filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,lastFixup,endY,maxLabels);
+	  computeArea(labels,area,lw,lh,0,lw,0,endY,maxLabels);
+	  condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,endY,maxLabels);
 	  firstId++;
 	  printf("fixup TL %d\n",firstId);
 	  
@@ -352,14 +354,14 @@ int main(int argc, char **argv){
     }
     
     // fix labels across region boundries
-    labelProp(labels,area,lw,lh,0,lw,0,lh);
-    computeArea(labels,area,lw,lh,0,lw,0,lh);
-    condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,lh);
+    labelProp(labels,area,lw,lh,0,lw,0,lh,maxLabels);
+    computeArea(labels,area,lw,lh,0,lw,0,lh,maxLabels);
+    condenseLabels(labels,area,1,&firstId,lw,lh,0,lw,0,lh,maxLabels);
     //printf("TL %d\n",firstId);
     
     distanceTransform(pyramid[L],dist,0,lw,lh);
     
-    filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,0,lh);
+    filter(pyramid,L,reason,labels,minArea,lw,lh,width,0,lw,0,lh,maxLabels);
 
     // now what's left "must" be text, so delete it from other pyrmid levels and save it
     
