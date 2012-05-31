@@ -7,11 +7,11 @@ EXAMPLES="../../examples/"
 
 #${IMAGESTACK} -load m1.png -translate 2 2 -noise 0 0.1 -save ./temp/frame2.ppm
 
-for gaussPyramidThresh in 2 3
+for gaussPyramidThresh in 1 2 3
 do
-  for finalMixThresh in 2 3
+  for finalMixThresh in 1 2 3
   do
-    for k in 20 40 100 200 400
+    for k in 1 20 40 100 200 400
     do
 
       for windowRadius in 20 50 100 300

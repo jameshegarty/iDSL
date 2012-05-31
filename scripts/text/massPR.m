@@ -1,8 +1,8 @@
 function massPR() 
 
-gaussPyramidThreshOptions = [2 3];
-finalMinThreshOptions = [2 3];
-kOptions = [20 40 100 200 400];
+gaussPyramidThreshOptions = [1 2 3];
+finalMinThreshOptions = [1 2 3];
+kOptions = [1 20 40 100 200 400];
 windowRadiusOptions = [20 50 100 300];
 imageOptions = 1:10;    
 
