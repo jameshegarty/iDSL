@@ -195,7 +195,8 @@ int main(int argc, char **argv){
   bool res = loadImage(argv[1], &width, &height, &channels, &data);
 
   if(!res){
-    printf("error loading image\n");
+    printf("error loading image %s\n",argv[1]);
+    return 1;
   }
 
   unsigned char *dataGray= NULL;

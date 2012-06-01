@@ -165,7 +165,7 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   
   FILE *file = fopen(filename,"rb");
   fseek(file, 0L, SEEK_END);
-  //unsigned long totalfilesize = ftell(file);
+  unsigned long totalfilesize = ftell(file);
 
   fseek(file, 2, SEEK_SET);
   currentCurPos += 2;
@@ -314,7 +314,7 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
     fseek(file, headersize-currentCurPos, SEEK_CUR);
     
     if ((i = fread(tempData, size+padding*(*height), 1, file)) != 1) {
-      printf("Error reading image data");
+      printf("Error reading image data %d %d %d %d\n",padding, *width,*height,headersize);
       delete[] tempData;
       return false;
     }
@@ -331,7 +331,7 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
     fseek(file, headersize-currentCurPos, SEEK_CUR);
     
     if ((i = fread(*data, size, 1, file)) != 1) {
-      printf("Error reading image data");
+      printf("Error reading image data %d %d %ld %d %d %d %ld %d\n",headersize,currentCurPos,size,*width,*height, *channels,totalfilesize,totalsize);
       return false;
     }
   }
