@@ -1,0 +1,279 @@
+function table_print (tt, indent, done)
+  done = done or {}
+  indent = indent or 0
+  if type(tt) == "table" then
+    local sb = {}
+    for key, value in pairs (tt) do
+      table.insert(sb, string.rep (" ", indent)) -- indent it
+      if type (value) == "table" and not done [value] then
+        done [value] = true
+	table.insert(sb, key);
+	table.insert(sb, "=");
+        table.insert(sb, "{\n");
+        table.insert(sb, table_print (value, indent + 2, done))
+        table.insert(sb, string.rep (" ", indent)) -- indent it
+        table.insert(sb, "}\n");
+      elseif "number" == type(key) then
+        table.insert(sb, string.format("\"%s\"\n", tostring(value)))
+      else
+        table.insert(sb, string.format(
+            "%s = \"%s\"\n", tostring (key), tostring(value)))
+       end
+    end
+    return table.concat(sb)
+  else
+    return tt .. "\n"
+  end
+end
+
+function to_string( tbl )
+    if  "nil"       == type( tbl ) then
+        return tostring(nil)
+    elseif  "table" == type( tbl ) then
+        return table_print(tbl)
+    elseif  "string" == type( tbl ) then
+        return tbl
+    else
+        return tostring(tbl)
+    end
+end
+
+function serialize(tbl) print(to_string(tbl)) end
+
+
+function deepcopy(object)
+    local lookup_table = {}
+    local function _copy(object)
+        if type(object) ~= "table" then
+            return object
+        elseif lookup_table[object] then
+            return lookup_table[object]
+        end
+        local new_table = {}
+        lookup_table[object] = new_table
+        for index, value in pairs(object) do
+            new_table[_copy(index)] = _copy(value)
+        end
+        return setmetatable(new_table, getmetatable(object))
+    end
+    return _copy(object)
+end
+
+-------------
+
+astmt = {}
+
+ops={'add','sub','eq','le'}
+
+x = setmetatable({type='xloc'},astmt)
+y = setmetatable({type='yloc'},astmt)
+
+for _,v in pairs(ops) do
+  astmt['__'..v]=function(op1,op2) return setmetatable({type='op',op=v,l=op1,r=op2},astmt) end
+end
+
+function c(x) return setmetatable({type='const',value=x},astmt) end
+
+function cfor(ivar,istart,iend,iblock) 
+  return setmetatable({type='for',v=ivar,s=istart,e=iend,block=iblock},astmt) 
+end
+
+function cif(icond,it,iif) return setmetatable({type='if',cond=icont,t=it,f=iif},astmt) end
+
+function cblock(b) return setmetatable({type='block',body=b},astmt) end
+
+function cin(chan,xx,yy) return setmetatable({type='in',channel=chan,['x']=xx,['y']=yy},astmt) end
+function cout(chan,xx,yy) return setmetatable({type='out',channel=chan,['x']=xx,['y']=yy},astmt) end
+function cset(ll,rr) return setmetatable({type='set',l=ll,r=rr},astmt) end
+function cvar(nam) return setmetatable({type='var',name=nam},astmt) end
+
+function evalOp(x)
+  local v1 = eval(x.l)
+  local v2 = eval(x.r)
+  
+  if(x.op=='add') then
+    return c(v1.value+v2.value)
+  else
+    print("Error: op "..ast.op.." not implemented")
+  end
+end
+
+function eval(ast)
+  if(ast.type=='op') then
+    return evalOp(ast)
+  elseif(ast.type=='const') then
+    return ast
+  elseif(ast.type=='xloc') then
+    return {type='const',value=currentXloc}
+  elseif(ast.type=='yloc') then
+    return {type='const',value=currentYloc}
+  elseif(ast.type=='block') then
+    for k,v in pairs(ast.body) do eval(v) end
+  else 
+    print("Error: type "..ast.type.." not implemented")
+  end
+end
+
+function stencilSizeOp(ast,size)
+  local size,v1 = stencilSize(ast.l,size)
+  local size,v2 = stencilSize(ast.r,size)
+  
+  if(ast.op=='add') then
+    return size,c(v1.value+v2.value)
+  elseif(ast.op=='sub') then
+    return size,c(v1.value-v2.value)
+  else
+    print("Error: op "..ast.op.." not implemented")
+  end
+end
+
+function stencilSize(ast,size)
+  size = size or {['inp']={xmin=10000,xmax=-10000,ymin=10000,ymax=-10000},['out']={xmin=10000,xmax=-10000,ymin=10000,ymax=-10000}}
+
+  if (ast.type=='block') then
+    for k,v in pairs(ast.body) do size=stencilSize(v,size) end
+    return size,ast
+  elseif(ast.type=='set') then
+    size = stencilSize(ast.l,size)
+    size = stencilSize(ast.r,size)
+    return size,ast
+  elseif(ast.type=='xloc') then
+    return size,{type='const',value=0}
+  elseif(ast.type=='const') then
+    return size,ast
+  elseif(ast.type=='yloc') then
+    return size,{type='const',value=0}
+  elseif(ast.type=='out') then
+    _,astx = stencilSize(ast.x,size)
+    _,asty = stencilSize(ast.y,size)
+    if(astx.value<size.out.xmin) then size.out.xmin=astx.value end
+    if(astx.value>size.out.xmax) then size.out.xmax=astx.value end
+    if(asty.value<size.out.ymin) then size.out.ymin=asty.value end
+    if(asty.value>size.out.ymax) then size.out.ymax=asty.value end
+    return size,ast
+  elseif(ast.type=='in') then
+    _,astx = stencilSize(ast.x,size)
+    _,asty = stencilSize(ast.y,size)
+    if(astx.value<size.inp.xmin) then size.inp.xmin=astx.value end
+    if(astx.value>size.inp.xmax) then size.inp.xmax=astx.value end
+    if(asty.value<size.inp.ymin) then size.inp.ymin=asty.value end
+    if(asty.value>size.inp.ymax) then size.inp.ymax=asty.value end
+    return size,c(0)
+  elseif(ast.type=='op') then
+    return stencilSizeOp(ast,size)
+  end
+  
+  print("Error: type "..ast.type.." not implemented")
+
+end
+
+
+outTable={}
+varTable={}
+
+function genDagOp(ast)
+  local v1 = genDag(ast.l)
+  local v2 = genDag(ast.r)
+
+  if(v1.type=='const' and v2.type=='const') then
+    if(ast.op=='add') then
+      return c(v1.value+v2.value)
+    elseif(ast.op=='sub') then
+      return c(v1.value-v2.value)
+    else
+      print("DAG Error: op "..ast.op.." not implemented")
+    end
+  end
+
+  ast.l = v1
+  ast.r = v2
+  return ast
+end
+
+function genDag(ast)
+  if(ast.type=='set') then
+    if(ast.l.type=='out') then
+      astc = genDag(ast.l.channel)
+      astx = genDag(ast.l.x)
+      asty = genDag(ast.l.y)
+      outTable[astc.value]=outTable[astc.value] or {}
+      outTable[astc.value][astx.value]=outTable[astc.value][astx.value] or {}
+      outTable[astc.value][astx.value][asty.value]=genDag(ast.r)
+    elseif(ast.l.type=='var') then
+      varTable[ast.l.name] = genDag(ast.r)
+    end
+    
+    return c(0)
+  elseif (ast.type=='block') then
+    for k,v in pairs(ast.body) do genDag(v) end
+    return c(0)
+  elseif (ast.type=='for') then
+    local i = genDag(ast.s).value
+    local e = genDag(ast.e).value
+    local vn = ast.v.name
+
+    print("for "..i.." "..e.." "..vn)
+
+    while(i<=e) do
+      print(vn..'='..i)
+      varTable[vn]=c(i)    
+      tblock = deepcopy(ast.block)
+      genDag(tblock)
+      i = i+1
+    end
+    return c(0)
+  elseif(ast.type=='xloc') then
+    return c(0)
+  elseif(ast.type=='yloc') then
+    return c(0)
+  elseif(ast.type=='in') then
+    ast.channel = genDag(ast.channel)
+    ast.x = genDag(ast.x)
+    ast.y = genDag(ast.y)
+    return ast
+  elseif(ast.type=='const') then
+    return ast
+  elseif(ast.type=='op') then
+    return genDagOp(ast)
+  elseif(ast.type=='var') then
+    print('get var '..ast.name)
+    return varTable[ast.name]
+  elseif(ast.type=='out') then
+    astc = genDag(ast.channel)
+    astx = genDag(ast.x)
+    asty = genDag(ast.y)
+    print(astc.value .. " " ..astx.value .. " " .. asty.value)
+    serialize(outTable[astc.value][astx.value][asty.value])
+    return outTable[astc.value][astx.value][asty.value]
+  end
+
+  print("DAG Error: type "..ast.type.." not implemented")
+end
+
+opToSymb={}
+opToSymb['add']='+'
+opToSymb['sub']='-'
+
+function astToCode(ast)
+  res = ""
+
+  if(ast.type=='op') then
+    res = astToCode(ast.l)..opToSymb[ast.op]..astToCode(ast.r)
+  elseif(ast.type=='block') then
+    for k,v in pairs(ast.body) do res = res .. astToCode(v).."\n" end
+  elseif(ast.type=='in') then
+    res = "in("..astToCode(ast.channel)..","..astToCode(ast.x)..","..astToCode(ast.y)..")"
+  elseif(ast.type=='const') then
+    res = tostring(ast.value)
+  elseif(ast.type=='var') then
+    res = ast.name
+  elseif(ast.type=='xloc') then
+    res = 'x'
+  elseif(ast.type=='yloc') then
+    res = 'y'
+  else 
+    print("astToCode error: type "..ast.type.." not implemented")
+  end
+
+  return res
+end
