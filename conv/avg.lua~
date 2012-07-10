@@ -1,2 +1,7 @@
-dofile 'lang.lua'
+dofile "lang.lua"
 
+function avg(c,x,y)
+  return (cin(c,x-1,y)+cin(c,x,y)+cin(c,x+1,y))/c(3)
+end
+
+apply("img.bmp",avg)

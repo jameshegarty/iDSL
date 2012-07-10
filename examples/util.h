@@ -11,26 +11,30 @@ enum Color {RED, GREEN, BLUE, ALPHA, LUM};
 const float PI = 3.1415926f;
 
 bool checkFloatImage(const char *file);
-bool loadImage(const char *file, int* width, int* height, int *channels, unsigned char **data);
-bool loadImage(const char *file, int* width, int* height, int *channels, unsigned short **data);
-bool loadImage(const char *file, int* width, int* height, int *channels, float **data);
-bool saveImage(const char *file, int width, int height, int channels, unsigned char *data);
+
+extern "C" {
+  // these all return null if there's an error
+unsigned char* loadImageUC(const char *file, int* width, int* height, int *channels);
+unsigned short* loadImageUS(const char *file, int* width, int* height, int *channels);
+float* loadImageF(const char *file, int* width, int* height, int *channels);
+bool saveImageUC(const char *file, int width, int height, int channels, unsigned char *data);
 // save one half of short in red, other in green. only takes 1 channel
-bool saveImage(const char *file, int width, int height, unsigned short *data);
+bool saveImageUS(const char *file, int width, int height, unsigned short *data);
 // input data should be [0,1]
-bool saveImage(const char *file, int width, int height, int channels, float *data);
+bool saveImageF(const char *file, int width, int height, int channels, float *data);
 // scales data to be [0,1]
 bool saveImageAutoLevels(const char *file, int width, int height, int channels, float *data);
 
 bool saveBMPAutoLevels(const char *file, int width, int height, int channels, float *data);
-bool loadBMP(const char *file, int* width, int* height, int *channels, unsigned char **data);
-bool saveBMP(const char *file, int width, int height, int channels, unsigned char *data);
-bool saveBMP(const char *file, int width, int height, int channels, float *data);
+unsigned char* loadBMP_UC(const char *file, int* width, int* height, int *channels);
+bool saveBMP_UC(const char *file, int width, int height, int channels, unsigned char *data);
+bool saveBMP_F(const char *file, int width, int height, int channels, float *data);
 bool saveFLO(const char *file, int width, int height, float *data);
-bool loadPGM(const char *file, int* width, int* height, unsigned short **data); // return 16 bit data
-bool loadFLO(const char *file, int* width, int* height, float **data); // return 16 bit data
-bool loadPPM(const char *file, int* width, int* height, int* channels, unsigned char **data);
-bool loadTMP(const char *file, int* width, int* height, int* channels, unsigned short **data); // return 16 bit data
+unsigned short* loadPGM_US(const char *file, int* width, int* height); // return 16 bit data
+float* loadFLO(const char *file, int* width, int* height); // return 16 bit data
+unsigned char* loadPPM_UC(const char *file, int* width, int* height, int* channels);
+unsigned short* loadTMP(const char *file, int* width, int* height, int* channels); // return 16 bit data
+}
 
 template<class T, bool clamped, int channels, int channelSelector>
 T sampleBilinearLow(int width, int height, float x, float y, const T* in){

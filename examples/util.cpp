@@ -124,17 +124,17 @@ void writePixel(int imgWidth, int imgHeight, int nChannels,
 }
 
 
-bool loadImage(const char *filename, int* width, int* height, int *channels, unsigned char **data){
+extern "C" unsigned char* loadImageUC(const char *filename, int* width, int* height, int *channels){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"bmp")==0){
-    return loadBMP(filename,width,height,channels,data);
+    return loadBMP_UC(filename,width,height,channels);
   }else if(strcmp(ext,"ppm")==0){
-    return loadPPM(filename,width,height,channels,data);
+    return loadPPM_UC(filename,width,height,channels);
   }
 
   printf("unknown filetype %s\n",filename);
-  return false;
+  return NULL;
 }
 
 bool checkFloatImage(const char *filename){
@@ -147,19 +147,19 @@ bool checkFloatImage(const char *filename){
   return false;
 }
 
-bool loadImage(const char *filename, int* width, int* height, int *channels, float **data){
+extern "C" float* loadImageF(const char *filename, int* width, int* height, int *channels){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"flo")==0){
     *channels = 2;
-    return loadFLO(filename,width,height,data);
+    return loadFLO(filename,width,height);
   }
 
   printf("unknown filetype %s\n",filename);
-  return false;
+  return NULL;
 }
 
-bool loadBMP(const char *filename, int* width, int* height, int *channels, unsigned char **data){
+extern "C" unsigned char* loadBMP_UC(const char *filename, int* width, int* height, int *channels){
 
   unsigned int currentCurPos=0;
   
@@ -300,9 +300,9 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   padding = padding == 4 ? 0 : padding;
 
   // allocate array for data
-  *data=new unsigned char[size];
+  unsigned char *data=new unsigned char[size];
 
-  if (*data == NULL) {
+  if (data == NULL) {
     printf("Error allocating memory for color-corrected image data");
     return false;	
   }
@@ -321,7 +321,7 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
     
     for(int h=0; h<(*height); h++){  
       memcpy(
-	&((*data)[h*(*width)*(*channels)]),
+	&(data[h*(*width)*(*channels)]),
 	&tempData[h*(*width)*(*channels)+h*padding],
 	(*width)*(*channels));
     }
@@ -330,7 +330,7 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
   }else{
     fseek(file, headersize-currentCurPos, SEEK_CUR);
     
-    if ((i = fread(*data, size, 1, file)) != 1) {
+    if ((i = fread(data, size, 1, file)) != 1) {
       printf("Error reading image data %d %d %ld %d %d %d %ld %d\n",headersize,currentCurPos,size,*width,*height, *channels,totalfilesize,totalsize);
       return false;
     }
@@ -340,26 +340,26 @@ bool loadBMP(const char *filename, int* width, int* height, int *channels, unsig
 
   if (*channels > 2) {
     for (unsigned int j=0; j<size; j+=*channels ) { // reverse all of the colors. (bgr -> rgb)
-      temp = (*data)[j];
-      (*data)[j] = (*data)[j+2];
-      (*data)[j+2] = temp;
+      temp = data[j];
+      data[j] = data[j+2];
+      data[j+2] = temp;
     
-      (*data)[j]=(*data)[j];
-      (*data)[j+1]=(*data)[j+1];
-      (*data)[j+2]=(*data)[j+2];
+      data[j]=data[j];
+      data[j+1]=data[j+1];
+      data[j+2]=data[j+2];
     }
   }
   
   fclose(file);
 
-  return true;
+  return data;
 }
 
-bool saveImage(const char *filename, int width, int height, int channels, float *data){
+extern "C" bool saveImageF(const char *filename, int width, int height, int channels, float *data){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"bmp")==0){
-    return saveBMP(filename,width,height,channels,data);
+    return saveBMP_F(filename,width,height,channels,data);
   }else if(strcmp(ext,"flo")==0){
     assert(channels==2);
     return saveFLO(filename,width,height,data);
@@ -368,17 +368,17 @@ bool saveImage(const char *filename, int width, int height, int channels, float 
   return false;
 }
 
-bool saveImage(const char *filename, int width, int height, int channels, unsigned char *data){
+extern "C" bool saveImageUC(const char *filename, int width, int height, int channels, unsigned char *data){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"bmp")==0){
-    return saveBMP(filename,width,height,channels,data);
+    return saveBMP_UC(filename,width,height,channels,data);
   }
 
   return false;
 }
 
-bool saveBMP(const char *filename, int width, int height, int channels, float *data){
+extern "C" bool saveBMP_F(const char *filename, int width, int height, int channels, float *data){
   // convert float to unsigned char
 
   unsigned char *temp = new unsigned char[width*height*channels];
@@ -387,13 +387,13 @@ bool saveBMP(const char *filename, int width, int height, int channels, float *d
     temp[i] = (unsigned char)( ((data[i]+1.f)/2.f) * 255.f );
   }
 
-  bool res = saveBMP(filename,width,height,channels,temp);
+  bool res = saveBMP_UC(filename,width,height,channels,temp);
   delete[] temp;
 
   return res;
 }
 
-bool saveImageAutoLevels(const char *filename, int width, int height, int channels, float *data){
+extern "C" bool saveImageAutoLevels(const char *filename, int width, int height, int channels, float *data){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"bmp")==0){
@@ -405,7 +405,7 @@ bool saveImageAutoLevels(const char *filename, int width, int height, int channe
 
 
 
-bool saveImage(const char *filename, int width, int height, unsigned short *data){
+extern "C" bool saveImageUS(const char *filename, int width, int height, unsigned short *data){
   unsigned char *temp = new unsigned char[width*height*3];
 
   //  for(int i=0; i<width*height*channels; i++){
@@ -424,7 +424,7 @@ bool saveImage(const char *filename, int width, int height, unsigned short *data
     }
   }
 
-  bool res = saveImage(filename,width,height,3,temp);
+  bool res = saveImageUC(filename,width,height,3,temp);
 
   delete[] temp;
 
@@ -448,13 +448,13 @@ bool saveBMPAutoLevels(const char *filename, int width, int height, int channels
     temp[i] = (unsigned char)( ((data[i]-min)/(max-min)) * 255.f );
   }
 
-  bool res = saveBMP(filename,width,height,channels,temp);
+  bool res = saveBMP_UC(filename,width,height,channels,temp);
   delete[] temp;
 
   return res;
 }
 
-bool saveBMP(const char *filename, int width, int height, int channels, unsigned char *data){
+extern "C" bool saveBMP_UC(const char *filename, int width, int height, int channels, unsigned char *data){
   FILE *file;
     
   // make sure the file is there.
@@ -667,21 +667,21 @@ bool saveBMP(const char *filename, int width, int height, int channels, unsigned
   return true;
 }
 
-bool loadImage(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+extern "C" unsigned short* loadImageUS(const char *filename, int* width, int* height, int* channels){
   const char *ext = filename + strlen(filename) - 3;
 
   if(strcmp(ext,"pgm")==0){
     *channels = 1;
-    return loadPGM(filename,width,height,data);
+    return loadPGM_US(filename,width,height);
   }else if(strcmp(ext,"tmp")==0){
-    return loadTMP(filename,width,height,channels,data);
+    return loadTMP(filename,width,height,channels);
   }
 
   printf("unknown filetype %s %s\n",filename, ext);
   return false;
 }
 
-bool loadPGM(const char *filename, int* width, int* height, unsigned short **data){
+unsigned short* loadPGM_US(const char *filename, int* width, int* height){
 
   assert(sizeof(unsigned short)==2);
 
@@ -722,7 +722,7 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
     return false;
   }
 
-  *data = new unsigned short[ (*width) * (*height)];
+  unsigned short *data = new unsigned short[ (*width) * (*height)];
   unsigned short *tempData = new unsigned short[ (*width) * (*height)];
 
   int i = 0;
@@ -734,17 +734,17 @@ bool loadPGM(const char *filename, int* width, int* height, unsigned short **dat
   // flip endian + row order
   for(int x=0; x<(*width); x++){
     for(int y=0; y<(*height); y++){
-      (*data)[((*height)-y-1)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
+      data[((*height)-y-1)*(*width)+x] = endianBig(tempData[y*(*width)+x]);
     }
   }
 
   delete[] tempData;
 
-  return true;
+  return data;
 }
 
 
-bool loadPPM(const char *filename, int* width, int* height, int* channels, unsigned char **data){
+extern "C" unsigned char* loadPPM_UC(const char *filename, int* width, int* height, int* channels){
 
   FILE *file = fopen(filename,"rb");
 
@@ -790,7 +790,7 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   }
   
   // read in data
-  *data = new unsigned char[ (*width) * (*height) * (*channels)];
+  unsigned char *data = new unsigned char[ (*width) * (*height) * (*channels)];
   unsigned char *tempData = new unsigned char[ (*width) * (*height) * (*channels)];
 
   int i = 0;
@@ -803,17 +803,17 @@ bool loadPPM(const char *filename, int* width, int* height, int* channels, unsig
   for(int c=0; c<(*channels); c++){
     for(int x=0; x<(*width); x++){ 
       for(int y=0; y<(*height); y++){
-	(*data)[(((*height)-y-1)*(*width)+x)*3+c] = tempData[(y*(*width)+x)*3+c];
+	data[(((*height)-y-1)*(*width)+x)*3+c] = tempData[(y*(*width)+x)*3+c];
       }
     }
   }
 
   delete[] tempData;
 
-  return true;
+  return data;
 }
 
-bool loadTMP(const char *filename, int* width, int* height, int* channels, unsigned short **data){
+unsigned short* loadTMP(const char *filename, int* width, int* height, int* channels){
 
   assert(sizeof(unsigned short)==2);
 
@@ -851,7 +851,7 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   }
 
   int size = (*width) * (*height) * (*channels);
-  *data = new unsigned short[size];
+  unsigned short *data = new unsigned short[size];
   float *tempData = new float[size];
 
   int i = 0;
@@ -863,13 +863,13 @@ bool loadTMP(const char *filename, int* width, int* height, int* channels, unsig
   // convert to short & flip y
   for(int x=0; x<(*width); x++){
     for(int y=0; y<(*height); y++){
-      (*data)[((*height)-y-1)*(*width)+x] = tempData[y*(*width)+x];
+      data[((*height)-y-1)*(*width)+x] = tempData[y*(*width)+x];
     }
   }
 
   delete[] tempData;
 
-  return true;
+  return data;
 }
 
 #define TAG_FLOAT 202021.25  // check for this when READING the file
@@ -907,7 +907,7 @@ bool saveFLO(const char *filename, int width, int height, float *data){
   return true;
 }
 
-bool loadFLO(const char *filename, int* width, int* height, float **data){
+float* loadFLO(const char *filename, int* width, int* height){
   FILE *stream = fopen(filename, "rb");
   assert(stream);//, "Could not open file %s\n", filename.c_str());
 
@@ -944,17 +944,17 @@ bool loadFLO(const char *filename, int* width, int* height, float **data){
   fclose(stream);
 
 
-  *data = new float[(*width)*(*height)*2];
+  float *data = new float[(*width)*(*height)*2];
 
   // flip row order
   for(int x=0; x<(*width);x++){
     for(int y=0; y<(*height); y++){
-      (*data)[(((*height)-y-1)*(*width)+x)*2+0] = dataTemp[(y*(*width)+x)*2+0];
-      (*data)[(((*height)-y-1)*(*width)+x)*2+1] = dataTemp[(y*(*width)+x)*2+1];
+      data[(((*height)-y-1)*(*width)+x)*2+0] = dataTemp[(y*(*width)+x)*2+0];
+      data[(((*height)-y-1)*(*width)+x)*2+1] = dataTemp[(y*(*width)+x)*2+1];
     }
   }
 
   delete[] dataTemp;
 
-  return true;
+  return data;
 }

@@ -63,28 +63,34 @@ end
 
 astmt = {}
 
-ops={'add','sub','eq','le'}
+ops={'add','sub','div','eq','le'}
 
-x = setmetatable({type='xloc'},astmt)
-y = setmetatable({type='yloc'},astmt)
+xloc = setmetatable({type='xloc'},astmt)
+yloc = setmetatable({type='yloc'},astmt)
+cloc = setmetatable({type='cloc'},astmt)
 
 for _,v in pairs(ops) do
-  astmt['__'..v]=function(op1,op2) return setmetatable({type='op',op=v,l=op1,r=op2},astmt) end
+  astmt['__'..v]=function(op1,op2) 
+    if type(op1)~="table" then print("Error: l must be a iDSL value") end
+    if type(op2)~="table" then print("Error: r must be a iDSL value") end
+    return setmetatable({type='op',op=v,l=op1,r=op2},astmt) 
+  end
 end
+
+astmt.__concat = function(op1,op2) return cblock{op1,op2} end
 
 function c(x) return setmetatable({type='const',value=x},astmt) end
+function cselect(icond,it,iif) return setmetatable({type='if',cond=icont,t=it,f=iif},astmt) end
 
-function cfor(ivar,istart,iend,iblock) 
-  return setmetatable({type='for',v=ivar,s=istart,e=iend,block=iblock},astmt) 
+function cin(chan,xx,yy) 
+  if type(chan)~="table" then print("Error: channel must be a iDSL value") end
+  if type(xx)~="table" then print("Error: x must be a iDSL value") end
+  if type(yy)~="table" then print("Error: y must be a iDSL value") end
+
+  return setmetatable({type='in',channel=chan,['x']=xx,['y']=yy},astmt) 
 end
 
-function cif(icond,it,iif) return setmetatable({type='if',cond=icont,t=it,f=iif},astmt) end
-
-function cblock(b) return setmetatable({type='block',body=b},astmt) end
-
-function cin(chan,xx,yy) return setmetatable({type='in',channel=chan,['x']=xx,['y']=yy},astmt) end
 function cout(chan,xx,yy) return setmetatable({type='out',channel=chan,['x']=xx,['y']=yy},astmt) end
-function cset(ll,rr) return setmetatable({type='set',l=ll,r=rr},astmt) end
 function cvar(nam) return setmetatable({type='var',name=nam},astmt) end
 
 function evalOp(x)
@@ -93,9 +99,24 @@ function evalOp(x)
   
   if(x.op=='add') then
     return c(v1.value+v2.value)
+  elseif(x.op=='sub') then
+    return c(v1.value-v2.value)
+  elseif(x.op=='div') then
+    return c(v1.value/v2.value)
   else
-    print("Error: op "..ast.op.." not implemented")
+    print("Error: op "..x.op.." not implemented")
   end
+end
+
+function sampleImage(cc,xx,yy)
+  xx = xx % width[0]
+  yy = yy % height[0]
+  --assert(cc >=0 and cc < channels[0])
+  if(cc <0 or cc > channels[0]) then
+    print("Error, bad channel when sampling image "..cc)
+  end
+
+  return image[yy*width[0]*channels[0]+xx*channels[0]+cc]
 end
 
 function eval(ast)
@@ -107,8 +128,13 @@ function eval(ast)
     return {type='const',value=currentXloc}
   elseif(ast.type=='yloc') then
     return {type='const',value=currentYloc}
-  elseif(ast.type=='block') then
-    for k,v in pairs(ast.body) do eval(v) end
+  elseif(ast.type=='cloc') then
+    return {type='const',value=currentCloc}
+  elseif(ast.type=='in') then
+    local lx = eval(ast['x'])
+    local ly = eval(ast['y'])
+    local lc = eval(ast.channel)
+    return {type='const',value=sampleImage(lc.value,lx.value,ly.value)}
   else 
     print("Error: type "..ast.type.." not implemented")
   end
@@ -174,6 +200,8 @@ varTable={}
 function genDagOp(ast)
   local v1 = genDag(ast.l)
   local v2 = genDag(ast.r)
+
+  --if(v1==nil or v2==nil) then print("error");serialize(ast); end
 
   if(v1.type=='const' and v2.type=='const') then
     if(ast.op=='add') then
@@ -242,8 +270,12 @@ function genDag(ast)
     astc = genDag(ast.channel)
     astx = genDag(ast.x)
     asty = genDag(ast.y)
-    print(astc.value .. " " ..astx.value .. " " .. asty.value)
-    serialize(outTable[astc.value][astx.value][asty.value])
+    --print(astc.value .. " " ..astx.value .. " " .. asty.value)
+    --serialize(outTable[astc.value][astx.value][asty.value])
+    if(outTable[astc.value][astx.value][asty.value]==nil) then
+      print("ERROR: out value at index "..astc.value .. " " ..astx.value .. " " .. asty.value.." not set yet!")
+    end
+
     return outTable[astc.value][astx.value][asty.value]
   end
 
@@ -253,16 +285,15 @@ end
 opToSymb={}
 opToSymb['add']='+'
 opToSymb['sub']='-'
+opToSymb['div']='/'
 
-function astToCode(ast)
+function astToCodeHuman(ast)
   res = ""
 
   if(ast.type=='op') then
-    res = astToCode(ast.l)..opToSymb[ast.op]..astToCode(ast.r)
-  elseif(ast.type=='block') then
-    for k,v in pairs(ast.body) do res = res .. astToCode(v).."\n" end
+    res = astToCodeHuman(ast.l)..opToSymb[ast.op]..astToCodeHuman(ast.r)
   elseif(ast.type=='in') then
-    res = "in("..astToCode(ast.channel)..","..astToCode(ast.x)..","..astToCode(ast.y)..")"
+    res = "cin("..astToCodeHuman(ast.channel)..","..astToCodeHuman(ast.x)..","..astToCodeHuman(ast.y)..")"
   elseif(ast.type=='const') then
     res = tostring(ast.value)
   elseif(ast.type=='var') then
@@ -271,9 +302,91 @@ function astToCode(ast)
     res = 'x'
   elseif(ast.type=='yloc') then
     res = 'y'
+  elseif(ast.type=='cloc') then
+    res = 'c'
+  else 
+    print("astToCodeHuman error: type "..ast.type.." not implemented")
+  end
+
+  return res
+end
+
+function astToCode(ast)
+  res = ""
+
+  if(ast.type=='op') then
+    res = "("..astToCode(ast.l)..")"..opToSymb[ast.op].."("..astToCode(ast.r)..")"
+  elseif(ast.type=='in') then
+    res = "cin("..astToCode(ast.channel)..","..astToCode(ast.x)..","..astToCode(ast.y)..")"
+  elseif(ast.type=='const') then
+    res = tostring(ast.value)
+  elseif(ast.type=='var') then
+    res = ast.name
+  elseif(ast.type=='xloc') then
+    res = 'x'
+  elseif(ast.type=='yloc') then
+    res = 'y'
+  elseif(ast.type=='cloc') then
+    res = 'c'
   else 
     print("astToCode error: type "..ast.type.." not implemented")
   end
 
   return res
+end
+
+function apply(imgfile, func)
+  local ffi = require("ffi")
+  ffi.cdef[[
+    bool saveImageUC(const char *file, int width, int height, int channels, unsigned char *data);
+    unsigned char* loadImageUC(const char *file, int* width, int* height, int *channels);
+    int printf(const char *fmt, ...);
+    void * malloc ( size_t size );
+  ]]
+
+  width = ffi.new("int[1]",0)
+  height = ffi.new("int[1]",0)
+  channels = ffi.new("int[1]",0)
+
+  util = ffi.load("../examples/libutil.so")
+
+  print("START"..imgfile)
+  image=util.loadImageUC(imgfile,width,height,channels)
+  print("END"..width[0].." "..height[0].." "..channels[0])
+
+  dag = func(cloc,xloc,yloc)
+  --serialize(dag)
+  codeString = astToCode(dag)
+  print(codeString)
+  print(astToCodeHuman(dag))
+  local code = loadstring("return "..codeString)
+
+  --local output = ffi.C.malloc(width[0]*height[0]*channels[0])
+  --output={}
+  local output = ffi.new("unsigned char[?]",width[0]*height[0]*channels[0])
+
+  c = function(x) return x end
+  cin = function(cc,xx,yy) return sampleImage(cc,xx,yy) end
+  
+  for yy = 0,height[0]-1 do
+--  for yy = 0,100 do
+    for xx = 0,width[0]-1 do
+      for cc = 0,channels[0]-1 do
+        currentXloc = xx
+	currentYloc = yy
+	currentCloc = cc
+	  -- eval using our interpreter (slow)
+--        output[yy*width[0]*channels[0]+xx*channels[0]+cc] = eval(dag).value
+	  
+	  -- generate dag each time
+--        output[yy*width[0]*channels[0]+xx*channels[0]+cc] = func(cc,xx,yy)
+
+	  -- eval using luajitted dag
+	  x = xx; y = yy; c = cc
+	  output[yy*width[0]*channels[0]+xx*channels[0]+cc] = code()
+      end
+    end
+  end
+
+  util.saveImageUC("out.bmp",width[0],height[0],channels[0],output)
 end

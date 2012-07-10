@@ -1,4 +1,4 @@
-default:
+default: libutil.so
 	make -C backAdvect $@; \
 	make -C bilateral $@; \
 	make -C convolution $@; \
@@ -15,7 +15,7 @@ default:
 	make -C label $@; \
 	make -C text $@; \
 
-debug:
+debug: libutil.so
 	make -C backAdvect $@; \
 	make -C bilateral $@; \
 	make -C convolution $@; \
@@ -47,3 +47,6 @@ clean:
 	make -C lineDetection $@; \
 	make -C label $@; \
 	make -C text $@; \
+
+libutil.so: util.cpp
+	g++ -g -fPIC -shared util.cpp -o libutil.so
